@@ -1,0 +1,17 @@
+:root { --brand: #15805f; --ink: #1d2a26; --muted: #5b6b66; --line: #e3e8e5; --paper: #f7f6f1; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", Meiryo, system-ui, sans-serif; line-height: 1.8; overflow-x: hidden; }
+header, main, footer { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+header { display: flex; align-items: center; gap: 8px; padding-top: 16px; padding-bottom: 8px; }
+header a { color: var(--brand); font-weight: 800; font-size: 20px; text-decoration: none; }
+main { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 24px 20px; margin-top: 8px; }
+h1 { font-size: 24px; margin: 0 0 4px; }
+h2 { font-size: 17px; margin: 28px 0 6px; border-left: 4px solid var(--brand); padding-left: 8px; }
+p, li { font-size: 15px; }
+ol, ul { padding-left: 22px; }
+.meta { color: var(--muted); font-size: 13px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+th { background: #f3f6f4; width: 30%; }
+a { color: var(--brand); }
+footer { color: var(--muted); font-size: 13px; padding-top: 16px; padding-bottom: 32px; }

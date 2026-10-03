@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+  --color-brand-50: #effaf6;
+  --color-brand-100: #d7f2e7;
+  --color-brand-200: #b0e4d1;
+  --color-brand-500: #1f9d77;
+  --color-brand-600: #15805f;
+  --color-brand-700: #10664d;
+  --color-brand-800: #0d513e;
+  --color-brand-900: #0b3d30;
+  --color-sun-100: #fff1d6;
+  --color-sun-400: #f7b733;
+  --color-sun-500: #ec9a0e;
+  --color-paper: #f7f6f1;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  background: var(--color-paper);
+  color: #1d2a26;
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+  body {
+    background: #fff;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .print-break {
+    break-inside: avoid;
+  }
+  table {
+    font-size: 9pt;
+  }
+}
+.print-only {
+  display: none;
+}
