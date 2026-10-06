@@ -28,3 +28,16 @@ describe('ライセンスキー', () => {
     expect((await verifyWith(pub, `  ${k.slice(0, 20)}\n${k.slice(20)} `, '2026-10-03')).ok).toBe(true)
   })
 })
+
+describe('Cloud Functions が作るキーをブラウザが読める', () => {
+  it('functions/sign.js で署名したキー（Pro 30人・ビジネス無制限）を検証できる', async () => {
+    const { createRequire } = await import('node:module')
+    const require = createRequire(import.meta.url)
+    const { signKey } = require('../../functions/sign.js')
+    const pem = privateKey.export({ type: 'pkcs8', format: 'pem' })
+    const pro = await verifyWith(pub, signKey(pem, '2027-01-31', 'Emn4w-UX3Ygb', 30), '2026-10-06')
+    expect(pro.ok && pro.payload.n).toBe(30)
+    const biz = await verifyWith(pub, signKey(pem, '2027-01-31', 'Emn4w-UX3Ygb', null), '2026-10-06')
+    expect(biz.ok && biz.payload.n).toBeUndefined()
+  })
+})

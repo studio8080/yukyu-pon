@@ -17,7 +17,7 @@ Excel の有休管理が壊れかけている会社。
 
 | 決めごと | 理由 |
 |---|---|
-| サーバー・DB・解析タグなし。保存は localStorage、控えはファイル | 氏名と休んだ日は個人情報。本番は CSP `connect-src 'none'` でブラウザに外部通信を禁止させている |
+| 従業員のデータを扱うサーバー・DB・解析タグなし。保存は localStorage、控えはファイル | 氏名と休んだ日は個人情報。本番の CSP `connect-src` はキー更新先（Cloud Functions）だけ。送るのはライセンスIDだけ |
 | 入力は「氏名・入社日・週の勤務日数（＋週30時間以上か）」と「休んだ日」だけ | 打刻・シフト・出勤日数は持たない。重い勤怠 SaaS にしない |
 | 基本は自動、例外は人が上書き（付与日数・8割未満・会社独自の上乗せ・移行残） | 9割の人は何も触らずに正しく、残り1割は手で直せる |
 | 迷ったら**労働者に不利にならない側**で判定する | 年5日は期間が重なっても按分せず、それぞれの期間で5日を見る／移行残は時効の遅い側に割り当てる |
@@ -79,17 +79,32 @@ Excel の有休管理が壊れかけている会社。
 
 ---
 
-## 4. 料金（未決）
+## 4. 料金と課金（2026-10-06 決定。全銀ポンと同じ構成）
 
-- 方針: **在籍5人まで無料、6人目から Pro**（退職者は数えない）。料金は要検討。
-- いま: `src/config.ts` の `PRO_ENFORCED = false`。全員が人数無制限で使える。画面と利用規約に「料金は準備中」と書いてある。
-- 仕組みは実装済み: 署名付きライセンスキー（Ed25519、サーバー不要。全銀ポンと同じ方式で鍵は別）。
-  - 秘密鍵: `C:\Users\chaha\.yukyu-pon\license-private.pem`（**リポジトリ外。要バックアップ。失うと発行済みのキーが更新できない**）
-  - 公開鍵: `src/lib/license.ts` の `PUBLIC_KEY`
-  - 発行: `node tools/issue-key.mjs --months 12 [--limit 30] [--memo 会社名]`（台帳 `tools/issued-keys.csv` は gitignore）
-- **有料化するときに同時に直すもの**: `src/config.ts`（`PRO_ENFORCED`・`PURCHASE_URL`）、`public/terms.html` 第3条（料金・支払・解約・返金）、特定商取引法に基づく表記のページを新設、`index.html` の title・説明の「無料」、`public/privacy.html` の 2章、この README。全銀ポンの `docs/launch-checklist.md` と `AGENTS.md` の課金の章が参考になる（Stripe の制限付きキーの権限、Webhook を商品で絞る、等）。
+| プラン | 在籍人数 | 月払い | 年払い |
+|---|---|---|---|
+| 無料 | 5人まで | ¥0 | — |
+| Pro | 30人まで | ¥480 | ¥4,800 |
+| ビジネス | 無制限 | ¥980 | ¥9,800 |
 
----
+すべて税込。機能は全プラン同じで、違いは在籍人数（退職者は数えない）だけ。上限を超えても閲覧・管理簿・バックアップは止めない。
+
+決めた理由: 有給管理は勤怠 SaaS のおまけ機能として安く（HRMOS勤怠は30人まで無料、有料は1人100〜200円・最低月2,000〜3,300円）、
+単体で高くは売れない。「Excel 管理の置き換え」として最低料金より安く、即決できる値段にした。Pro は全銀ポンと同額。
+30人を超える会社・社労士事務所・複数店舗はビジネスへ。
+
+仕組み（全銀ポンの `functions/` と同じ設計。運営者の手順は `docs/launch-checklist.md`）:
+
+- Stripe のサブスク（月・年、自動更新）→ Webhook → Cloud Functions（Firebase `misefits` に codebase `yukyupon` で相乗り、asia-northeast1）
+  → 署名付きキー（YP1-、Ed25519。Pro は `n:30`、ビジネスは上限なし）を発行してメール。
+- キーの寿命は最長30日。ブラウザが「期限10日前」か「前回確認から7日」でライセンスIDだけを送って取り直す。解約済みなら 410 → キーを外して無料に戻る。
+- 共用の Stripe アカウントなので、**商品ID（`functions/plans.js`）で絞る。空なら何もしない。**
+- Webhook はイベントIDで二重処理を防ぎ、メールを送れなければ 500 で再送させる（共通メモ5章の4）。
+- 秘密鍵: `C:\Users\chaha\.yukyu-pon\license-private.pem`（リポジトリ外。要バックアップ）。公開鍵: `src/lib/license.ts`。
+- 手動発行: `node tools/issue-key.mjs --months 12 --plan pro|business [--id ライセンスID]`（台帳 `tools/issued-keys.csv` は gitignore）。
+- `src/config.ts` の `PRO_ENFORCED` は、¥0 クーポンで本番の経路（購入→キー→プラン変更→解約→失効）を通してから `true` にする。
+
+**料金・上限を変えるときに同時に直すもの**: `functions/plans.js`、`src/config.ts`（`PLANS`・`FREE_LIMIT`・`planName`）、`public/pricing.html`（表と確認事項）、`public/terms.html` 第3条、`public/tokushoho.html`、`index.html` の title・説明、Stripe の価格、この README。
 
 ## 5. 構成
 
@@ -101,11 +116,13 @@ src/lib/importer.ts    Excel / CSV / 貼り付けの読み取り、見出しか�
 src/lib/importPlan.ts  読み取った表 → 新規・更新・エラーの計画、移行残の割り当て
 src/lib/exporter.ts    管理簿（Excel 3シート）
 src/lib/backup.ts      自動バックアップ（File System Access API）
-src/lib/license.ts     Pro キーの検証 / src/lib/plan.ts 人数の上限 / src/config.ts 料金の設定
+src/lib/license.ts     キーの検証と取り直し / src/lib/plan.ts 人数の上限 / src/config.ts 料金の設定
 src/store.ts           zustand + localStorage、復元ポイント、バックアップの読み書き
 src/components/        画面
-public/                利用規約・プライバシー・robots・sitemap・CNAME
+public/                料金・利用規約・プライバシー・特商法・robots・sitemap・CNAME
+functions/             Cloud Functions（Stripe Webhook・キー更新）。テストは functions/test（npm install 不要）
 tools/                 鍵の作成・キーの発行
+docs/launch-checklist.md  販売開始までの運営者の手順
 ```
 
 ## 6. 動かす
@@ -115,7 +132,8 @@ tools/                 鍵の作成・キーの発行
 
 ```bash
 N=/c/Users/chaha/tools/node-v24.14.0-win-x64/node.exe
-$N node_modules/vitest/vitest.mjs run          # テスト
+$N node_modules/vitest/vitest.mjs run          # テスト（画面・計算）
+$N functions/test/functions.test.js            # テスト（Webhook・キー更新）
 $N node_modules/typescript/bin/tsc -b           # 型チェック
 $N node_modules/vite/bin/vite.js                # 開発サーバー（launch.json の yukyu-pon、:5191）
 $N node_modules/vite/bin/vite.js build          # dist/（launch.json の yukyu-pon-dist で :5192 に本番相当を出す）
@@ -123,13 +141,14 @@ $N node_modules/vite/bin/vite.js build          # dist/（launch.json の yukyu-
 
 ## 7. 公開（GitHub Pages）
 
-- `.github/workflows/deploy.yml`: `main` への push で `npm ci → vitest → tsc → vite build → Pages`。
+- `.github/workflows/deploy.yml`: `main` への push で `npm ci → vitest → Functions のテスト → tsc → vite build → Pages`。
+- Cloud Functions は手元から `firebase deploy --only functions:yukyupon --project misefits`（`--only` を外さない）。
 - 独自ドメイン `yukyu.kokokikaku.com`: `public/CNAME` とリポジトリの Pages 設定。**DNS は Squarespace で `CNAME yukyu → studio8080.github.io` を追加する**（`mikan@kokokikaku.com` で再認証が必要。種別の選択は人がやる）。DNS が通ったら Pages の「Enforce HTTPS」をオン。
 
 ## 8. 今後
 
 - [ ] DNS（上の7章）→ HTTPS → Search Console 登録・sitemap 送信
-- [ ] 料金を決めて有料化（4章）
+- [ ] 販売開始（`docs/launch-checklist.md` の3〜7）
 - [ ] 会社サイト（kokokikaku-web）の制作実績・llms.txt に載せる
 - [ ] OGP 画像
 - [ ] 要望次第: 按分、分割付与、従業員本人がスマホで残日数を見る（共有はデータを外に出すので要設計）

@@ -28,6 +28,10 @@ type State = Data & {
   acceptedAt: string | null
   /** Pro のライセンスキー */
   licenseKey: string
+  /** 最後にキーの更新を確かめた日時 */
+  licenseCheckedAt: string | null
+  /** 解約などでキーが外れたときのお知らせ */
+  licenseNotice: string
   setAsOf: (d: ISODate) => void
   updateSettings: (p: Partial<Settings>) => void
   addEmployee: (e: Omit<Employee, 'id'>) => string
@@ -40,6 +44,8 @@ type State = Data & {
   markBackedUp: () => void
   accept: () => void
   setLicenseKey: (k: string) => void
+  markLicenseChecked: () => void
+  setLicenseNotice: (s: string) => void
   clearAll: () => void
 }
 
@@ -56,6 +62,8 @@ export const useStore = create<State>()(
       lastChangeAt: null,
       acceptedAt: null,
       licenseKey: '',
+      licenseCheckedAt: null,
+      licenseNotice: '',
       setAsOf: (asOf) => set({ asOf }),
       updateSettings: (p) => set((s) => ({ settings: { ...s.settings, ...p }, lastChangeAt: now() })),
       addEmployee: (e) => {
@@ -107,6 +115,8 @@ export const useStore = create<State>()(
       markBackedUp: () => set({ lastBackupAt: now() }),
       accept: () => set({ acceptedAt: now() }),
       setLicenseKey: (licenseKey) => set({ licenseKey }),
+      markLicenseChecked: () => set({ licenseCheckedAt: now() }),
+      setLicenseNotice: (licenseNotice) => set({ licenseNotice }),
       clearAll: () => {
         takeSnapshot('すべて消す前')
         set({ settings: defaultSettings, employees: [], leaves: [], lastBackupAt: null, lastChangeAt: now() })
@@ -124,6 +134,8 @@ export const useStore = create<State>()(
         lastChangeAt: s.lastChangeAt,
         acceptedAt: s.acceptedAt,
         licenseKey: s.licenseKey,
+        licenseCheckedAt: s.licenseCheckedAt,
+        licenseNotice: s.licenseNotice,
       }),
       // 設定の項目が増えても、古い保存データに既定値を足して読む
       migrate: (persisted) => persisted as State,

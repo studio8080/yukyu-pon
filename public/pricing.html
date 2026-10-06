@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>料金プラン｜有休ポン</title>
+<meta name="description" content="有休ポンの料金。在籍5人まで無料、Pro（30人まで）月480円・年4,800円、ビジネス（人数無制限）月980円・年9,800円。すべて税込・いつでも解約できます。" />
+<link rel="canonical" href="https://yukyu.kokokikaku.com/pricing.html" />
+<link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+<link rel="stylesheet" href="./pages.css" />
+</head>
+<body>
+<header><a href="./">有休ポン</a></header>
+<main>
+<h1>料金プラン</h1>
+<p>機能はどのプランも同じです。違うのは、管理できる<strong>在籍中の人数</strong>だけ（退職した人は数えません）。すべて税込です。</p>
+
+<!-- 販売開始前の告知。販売を始めたら差し替える（docs/launch-checklist.md） -->
+<p class="notice" id="status">いまは公開記念として、人数の制限なく無料でお使いいただけます。有料プランのお申し込みは準備中です（始めるときはこのページと本サービス上でお知らせします）。</p>
+
+<div class="plans">
+  <section class="plan">
+    <h3>無料</h3>
+    <p class="sub">在籍5人まで</p>
+    <p class="price">¥0</p>
+    <p class="sub">登録不要。すぐ使えます</p>
+    <a class="btn" href="./">使ってみる</a>
+  </section>
+  <section class="plan reco">
+    <h3>Pro</h3>
+    <p class="sub">在籍30人まで</p>
+    <p class="price">¥480<span class="sub"> / 月</span></p>
+    <p class="sub">年払い ¥4,800（2か月分お得）</p>
+    <!-- Stripe の支払いリンクを href に入れ、class の off を外す -->
+    <a class="btn off" href="#" id="buy-pro-month">月払いで申し込む（準備中）</a>
+    <a class="btn off" href="#" id="buy-pro-year">年払いで申し込む（準備中）</a>
+  </section>
+  <section class="plan">
+    <h3>ビジネス</h3>
+    <p class="sub">人数無制限</p>
+    <p class="price">¥980<span class="sub"> / 月</span></p>
+    <p class="sub">年払い ¥9,800（2か月分お得）</p>
+    <a class="btn off" href="#" id="buy-biz-month">月払いで申し込む（準備中）</a>
+    <a class="btn off" href="#" id="buy-biz-year">年払いで申し込む（準備中）</a>
+  </section>
+</div>
+
+<h2 id="confirm">お申し込み前の確認事項</h2>
+<table>
+<tr><th>提供するもの</th><td>有休ポンの有料プランの利用権（1契約につき1事業者）。お支払いの確認後、ライセンスキーをメールでお送りします</td></tr>
+<tr><th>料金</th><td>Pro: 月払い ¥480／年払い ¥4,800。ビジネス: 月払い ¥980／年払い ¥9,800（すべて税込）</td></tr>
+<tr><th>人数の数え方</th><td>集計日の時点で在籍中の従業員の人数（退職日を過ぎた人は数えません）。上限を超えても、入力済みのデータの閲覧・管理簿の出力・バックアップは使えます。新しく追加できなくなるだけです</td></tr>
+<tr><th>支払い方法・時期</th><td>クレジットカード（決済は Stripe）。お申し込み時に初回分を決済し、以後は月払いなら毎月、年払いなら毎年の更新日に自動で決済します</td></tr>
+<tr><th>提供の時期</th><td>決済の完了後、ライセンスキーをメールでお送りします（通常は数分以内）</td></tr>
+<tr><th>契約期間</th><td>期間の定めのない自動更新です。解約のお手続きをされるまで継続します</td></tr>
+<tr><th>解約・プランの変更</th><td>キーのメールにある契約の管理ページ（Stripe）から、いつでも解約・プランの変更ができます。studio@kokokikaku.com へのメールでも承ります。次回の決済日の前日までのお手続きで、次回分は請求されません</td></tr>
+<tr><th>解約後</th><td>お支払い済みの期間の末日まで使えます。その後は自動的に無料プラン（在籍5人まで）に戻ります。年払いの途中解約による日割りの返金はありません</td></tr>
+<tr><th>返金</th><td>初回決済から7日以内のお申し出に限り、全額を返金します</td></tr>
+<tr><th>動作環境</th><td>最新版の Google Chrome / Microsoft Edge / Safari / Firefox。自動バックアップは Chrome・Edge のみ</td></tr>
+</table>
+
+<h2>よくある質問</h2>
+<p><strong>従業員のデータは送られますか？</strong><br />送られません。計算と保存はブラウザの中だけです。ご契約中かを確かめるため、ときどきライセンスIDだけを運営者のサーバーへ送ります。</p>
+<p><strong>パソコンを2台で使えますか？</strong><br />同じ事業者の中であれば、同じキーを複数のブラウザに入れて使えます。データはブラウザごとに別なので、バックアップのファイルで移してください。</p>
+<p><strong>適格請求書（インボイス）は出ますか？</strong><br />当社は適格請求書発行事業者の登録をしていないため、発行できません。Stripe の領収書は届きます。</p>
+</main>
+<footer>
+<p><a href="./">有休ポン</a>・<a href="./terms.html">利用規約</a>・<a href="./privacy.html">プライバシーポリシー</a>・<a href="./tokushoho.html">特定商取引法に基づく表記</a></p>
+<p>企画・開発・運営：<a href="https://kokokikaku.com/">ここ企画</a></p>
+</footer>
+</body>
+</html>

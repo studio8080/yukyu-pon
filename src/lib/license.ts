@@ -50,3 +50,57 @@ export async function verifyWith(pub: string, input: string, today: string): Pro
   if (payload.e < today) return { ok: false, reason: `有効期限（${payload.e}）が切れています。更新したキーを入れるとまた使えます`, payload, expired: true }
   return { ok: true, payload }
 }
+
+/** キーの中身を読むだけ（署名は確かめない。更新先に送る ID を取り出すため） */
+export function peekPayload(key: string): LicensePayload | null {
+  const m = String(key || '').trim().match(/^YP1-([A-Za-z0-9_-]+)\./)
+  if (!m) return null
+  try {
+    return JSON.parse(new TextDecoder().decode(b64u(m[1])))
+  } catch {
+    return null
+  }
+}
+
+const REFRESH_WITHIN_DAYS = 10 // 期限がこれ以内に迫ったら取り直す
+const RECHECK_AFTER_DAYS = 7 // 前回の確認からこれだけ経ったら取り直す（解約を早く反映するため）
+
+export type RenewResult =
+  | { kind: 'renewed'; key: string; expiry: string }
+  | { kind: 'revoked' } // 契約が終わっている → キーを消して無料プランへ
+  | { kind: 'skip'; reason: string } // 何もしない（オフライン・未登録・まだ早い など）
+
+const dayDiff = (a: string, b: string) => Math.round((Date.parse(a + 'T00:00:00Z') - Date.parse(b + 'T00:00:00Z')) / 86400000)
+
+/**
+ * 必要ならキーを取り直す。送るのはライセンスIDだけ。
+ * 契約中なら期限が延びたキー、解約済みなら 410 → revoked。通信できなければ何もしない（手元のキーの期限までは使える）。
+ */
+export async function renewIfNeeded(api: string, key: string, checkedAt: string | null, today: string, force = false): Promise<RenewResult> {
+  if (!api || !key) return { kind: 'skip', reason: 'no-key' }
+  const p = peekPayload(key)
+  if (!p?.id) return { kind: 'skip', reason: 'no-id' }
+  if (!force) {
+    const soon = !p.e || dayDiff(p.e, today) <= REFRESH_WITHIN_DAYS
+    const stale = !checkedAt || dayDiff(today, checkedAt.slice(0, 10)) >= RECHECK_AFTER_DAYS
+    if (!soon && !stale) return { kind: 'skip', reason: 'not-due' }
+  }
+  let res: Response
+  try {
+    res = await fetch(`${api}?id=${encodeURIComponent(p.id)}`, { method: 'GET', cache: 'no-store' })
+  } catch {
+    return { kind: 'skip', reason: 'offline' }
+  }
+  if (res.status === 410) return { kind: 'revoked' }
+  if (!res.ok) return { kind: 'skip', reason: `http-${res.status}` }
+  let j: { key?: string }
+  try {
+    j = await res.json()
+  } catch {
+    return { kind: 'skip', reason: 'bad-response' }
+  }
+  if (!j?.key) return { kind: 'skip', reason: 'bad-response' }
+  const v = await verifyLicense(j.key, today)
+  if (!v.ok) return { kind: 'skip', reason: v.reason }
+  return { kind: 'renewed', key: j.key, expiry: v.payload.e }
+}

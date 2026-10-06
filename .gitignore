@@ -26,3 +26,8 @@ dist-ssr
 # Pro キーの発行台帳（購入者の情報を含むので公開しない）
 tools/issued-keys.csv
 *.pem
+
+# Cloud Functions
+functions/node_modules
+functions/.env
+firebase-debug*.log

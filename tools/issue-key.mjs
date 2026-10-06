@@ -3,7 +3,9 @@
 //   node tools/issue-key.mjs --months 12            今日から12か月（＋更新の余裕3日）
 //   node tools/issue-key.mjs --until 2027-03-31     期限を直接指定
 //   node tools/issue-key.mjs --months 1 --id ord_123 --memo "〇〇商店"
-//   node tools/issue-key.mjs --months 12 --limit 30  人数の上限つき（省略 = 無制限）
+//   node tools/issue-key.mjs --months 12 --plan pro      Pro（在籍30人まで）。--plan business は無制限
+//   node tools/issue-key.mjs --months 12 --limit 30      人数の上限を直接指定（省略 = 無制限）
+// 自動発行（Cloud Functions）のキーを手動で作り直すときは --id にライセンスID（licenseIdFor(sub_…)）を入れる。
 // 秘密鍵: 環境変数 YP_PRIVATE_KEY_FILE か ~/.yukyu-pon/license-private.pem
 // 台帳: tools/issued-keys.csv（gitignore 済み）に追記する。
 import crypto from 'node:crypto'
@@ -31,7 +33,13 @@ if (!until) {
 }
 const id = opt('--id') || crypto.randomBytes(4).toString('hex')
 const payload = { v: 1, p: 'pro', e: until, id }
-if (opt('--limit')) payload.n = Number(opt('--limit'))
+const plan = opt('--plan')
+if (plan && !['pro', 'business'].includes(plan)) {
+  console.error('--plan は pro か business')
+  process.exit(1)
+}
+const limit = opt('--limit') ? Number(opt('--limit')) : plan === 'pro' ? 30 : null
+if (limit) payload.n = limit
 const body = Buffer.from(JSON.stringify(payload), 'utf8')
 const sig = crypto.sign(null, body, crypto.createPrivateKey(fs.readFileSync(pemFile, 'utf8')))
 const key = `YP1-${body.toString('base64url')}.${sig.toString('base64url')}`

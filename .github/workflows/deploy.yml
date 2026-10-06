@@ -1,6 +1,7 @@
 name: deploy
 
-# main に push したら、テスト → 型チェック → ビルド → GitHub Pages に公開
+# main に push したら、テスト（画面・Functions）→ 型チェック → ビルド → GitHub Pages に公開
+# Cloud Functions のデプロイはここではしない（手元で firebase deploy --only functions:yukyupon）
 on:
   push:
     branches: [main]
@@ -26,6 +27,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx vitest run
+      - run: node functions/test/functions.test.js
       - run: npx tsc -b
       - run: npx vite build
       - uses: actions/upload-pages-artifact@v3

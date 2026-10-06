@@ -9,6 +9,7 @@ import { LedgerView } from './components/LedgerView'
 import { backupNow, SettingsView } from './components/SettingsView'
 import { Button } from './components/ui'
 import { initAutosave, resumeAutosave, useAutosave } from './lib/backup'
+import { renewLicense } from './lib/plan'
 import { isISODate, today } from './lib/dates'
 import { useStore } from './store'
 
@@ -30,6 +31,16 @@ export default function App() {
   const setAsOf = useStore((s) => s.setAsOf)
   useEffect(() => {
     initAutosave()
+    renewLicense() // 契約中ならキーの期限を延ばす。解約済みならキーを外す（送るのはライセンスIDだけ）
+    // メールの「/#pro」から来たら、キーの入力欄を開く
+    const openPro = () => {
+      if (location.hash !== '#pro') return
+      setTab('settings')
+      setTimeout(() => document.getElementById('pro')?.scrollIntoView({ behavior: 'smooth' }), 100)
+    }
+    openPro()
+    window.addEventListener('hashchange', openPro)
+    return () => window.removeEventListener('hashchange', openPro)
   }, [])
   const go = (t: string) => {
     setTab(t as TabKey)
@@ -83,6 +94,7 @@ export default function App() {
 
       <main className="mx-auto max-w-6xl px-4 py-5">
         <BackupReminder onSettings={() => go('settings')} />
+        <LicenseNotice />
         {tab === 'home' && <Dashboard onOpen={setOpenId} onNavigate={go} />}
         {tab === 'leave' && <LeaveEntry onOpen={setOpenId} />}
         {tab === 'import' && <ImportView onDone={() => go('home')} />}
@@ -96,8 +108,14 @@ export default function App() {
           <Lock size={12} /> 入力した内容はこのブラウザの中だけに保存され、外部へは送信しません。
         </p>
         <p className="mt-1 flex flex-wrap gap-x-3">
+          <a href="./pricing.html" className="underline">
+            料金プラン
+          </a>
           <a href="./terms.html" className="underline">
             利用規約
+          </a>
+          <a href="./tokushoho.html" className="underline">
+            特定商取引法に基づく表記
           </a>
           <a href="./privacy.html" className="underline">
             プライバシーポリシー
@@ -202,5 +220,18 @@ function Logo() {
       <circle cx="16" cy="21" r="5.5" fill="#f7b733" />
       <path d="M13.5 21.2l1.8 1.8 3.4-3.6" stroke="#0b3d30" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  )
+}
+
+function LicenseNotice() {
+  const notice = useStore((s) => s.licenseNotice)
+  if (!notice) return null
+  return (
+    <div className="no-print mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">
+      {notice}
+      <button type="button" className="underline" onClick={() => useStore.getState().setLicenseNotice('')}>
+        閉じる
+      </button>
+    </div>
   )
 }

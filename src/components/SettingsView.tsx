@@ -1,9 +1,9 @@
 import { Crown, Download, FolderSync, History, ShieldCheck, Trash2, Upload } from 'lucide-react'
 import { useState } from 'react'
-import { FREE_LIMIT, PRO_ENFORCED, PURCHASE_URL } from '../config'
+import { PLANS, planName, PRO_ENFORCED } from '../config'
 import { autosaveSupported, chooseAutosaveFile, readAutosaveFile, resumeAutosave, stopAutosave, useAutosave } from '../lib/backup'
 import { fmt, isISODate } from '../lib/dates'
-import { usePlan } from '../lib/plan'
+import { renewLicense, usePlan } from '../lib/plan'
 import type { FirstGrantRule, Settings } from '../lib/types'
 import { currentData, listSnapshots, makeBackup, parseBackup, restoreSnapshot, useStore } from '../store'
 import { Button, Card, download, Field, inputCls, Modal, Notice } from './ui'
@@ -368,45 +368,54 @@ function BackupCard() {
 function ProCard() {
   const plan = usePlan()
   const key = useStore((x) => x.licenseKey)
+  const checkedAt = useStore((x) => x.licenseCheckedAt)
   const [input, setInput] = useState('')
+  const [msg, setMsg] = useState('')
   const lic = plan.license
   return (
     <Card>
       <h2 className="mb-1 flex items-center gap-2 text-lg font-bold text-slate-800" id="pro">
         <Crown size={20} className="text-sun-500" /> 料金プラン
       </h2>
-      {!PRO_ENFORCED ? (
-        <p className="mb-3 text-sm text-slate-600">
-          いまは<strong>全機能を人数の制限なく無料</strong>で使えます。今後、在籍{FREE_LIMIT}人までは無料のまま、{FREE_LIMIT + 1}人目からは有料の Pro プランにする予定です（料金は準備中。決まったらこのページと利用規約でお知らせします）。
-          どのプランでも、入れたデータの閲覧・管理簿の出力・バックアップは止めません。
-        </p>
-      ) : (
-        <p className="mb-3 text-sm text-slate-600">
-          在籍{FREE_LIMIT}人までは無料。{FREE_LIMIT + 1}人目からは Pro プランが必要です（いま在籍 {plan.activeCount}人）。上限を超えても、入れたデータの閲覧・管理簿の出力・バックアップはそのまま使えます。
-          {PURCHASE_URL ? (
-            <a href={PURCHASE_URL} className="ml-1 text-brand-700 underline" target="_blank" rel="noopener">
-              Pro を申し込む
-            </a>
-          ) : (
-            '（申し込みは準備中）'
-          )}
-        </p>
-      )}
+      <div className="my-3 grid gap-2 sm:grid-cols-3">
+        {PLANS.map((p) => (
+          <div key={p.key} className="rounded-xl border border-slate-200 p-3">
+            <p className="font-bold text-slate-800">{p.name}</p>
+            <p className="text-sm text-slate-600">{p.limit ? `在籍${p.limit}人まで` : '人数無制限'}</p>
+            <p className="mt-1 text-lg font-bold text-brand-800">{p.month ? `月¥${p.month.toLocaleString()}` : '¥0'}</p>
+            {p.year > 0 && <p className="text-xs text-slate-500">年払い ¥{p.year.toLocaleString()}（2か月分お得）</p>}
+          </div>
+        ))}
+      </div>
+      <p className="mb-3 text-sm text-slate-600">
+        すべて税込。機能はどのプランも同じで、違うのは管理できる在籍人数だけです（退職した人は数えません）。いま在籍 {plan.activeCount}人。
+        {!PRO_ENFORCED && <strong> いまは公開記念として、人数の制限なく無料で使えます。</strong>}
+        有料プランでも、入れたデータの閲覧・管理簿の出力・バックアップは止めません。{' '}
+        <a href="./pricing.html" className="text-brand-700 underline">
+          料金と申し込み
+        </a>
+      </p>
       {plan.pro && lic?.ok ? (
         <Notice tone="ok">
-          Pro が有効です（有効期限 {fmt(lic.payload.e)}
-          {lic.payload.n ? `・${lic.payload.n}人まで` : '・人数無制限'}）。{' '}
-          <button type="button" className="underline" onClick={() => useStore.getState().setLicenseKey('')}>
-            キーを外す
-          </button>
+          {planName(lic.payload.n)} が有効です（キーの期限 {fmt(lic.payload.e)}。ご契約中は自動で延長されます）。
+          <span className="mt-2 flex flex-wrap gap-2">
+            <Button size="sm" onClick={async () => setMsg(await renewLicense(true))}>
+              更新を確認
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => confirm('このブラウザから Pro のキーを外しますか？（契約は解約されません）') && useStore.getState().setLicenseKey('')}>
+              キーを外す
+            </Button>
+          </span>
         </Notice>
       ) : (
         <div className="flex flex-wrap items-start gap-2">
-          <input className={`${inputCls} max-w-md font-mono text-sm`} placeholder="YP1- で始まるライセンスキー" value={input} onChange={(e) => setInput(e.target.value)} />
+          <input className={`${inputCls} max-w-md font-mono text-sm`} placeholder="YP1- で始まるライセンスキー" value={input} onChange={(e) => setInput(e.target.value)} aria-label="ライセンスキー" />
           <Button
+            variant="primary"
             disabled={!input.trim()}
             onClick={() => {
               useStore.getState().setLicenseKey(input.trim().replace(/\s+/g, ''))
+              useStore.getState().setLicenseNotice('')
               setInput('')
             }}
           >
@@ -415,7 +424,11 @@ function ProCard() {
           {key && lic && !lic.ok && <p className="w-full text-sm text-red-700">{lic.reason}</p>}
         </div>
       )}
-      <p className="mt-2 text-xs text-slate-500">キーはこのブラウザの中で確かめるだけで、入力しても通信は発生しません。</p>
+      {msg && <p className="mt-2 text-sm text-slate-600">{msg}</p>}
+      <p className="mt-2 text-xs text-slate-500">
+        キーの確認はこのブラウザの中で行います。ご契約中かどうかの確認のため、ときどきライセンスIDだけを運営者のサーバーへ送ります（従業員のデータは送りません）。
+        {checkedAt && ` 最後の確認: ${new Date(checkedAt).toLocaleDateString('ja-JP')}`}
+      </p>
     </Card>
   )
 }

@@ -15,3 +15,12 @@ th, td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vert
 th { background: #f3f6f4; width: 30%; }
 a { color: var(--brand); }
 footer { color: var(--muted); font-size: 13px; padding-top: 16px; padding-bottom: 32px; }
+.plans { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin: 16px 0; }
+.plan { border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+.plan.reco { border: 2px solid var(--brand); }
+.plan h3 { margin: 0 0 4px; font-size: 18px; }
+.price { font-size: 26px; font-weight: 800; color: var(--brand); margin: 4px 0 0; }
+.sub { color: var(--muted); font-size: 13px; margin: 0; }
+.btn { display: block; text-align: center; margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: var(--brand); color: #fff; text-decoration: none; font-weight: 700; font-size: 14px; }
+.btn.off { background: #c9d3cf; color: #45524d; pointer-events: none; }
+.notice { background: #eef8f4; border: 1px solid #b0e4d1; border-radius: 12px; padding: 10px 14px; font-size: 14px; }
