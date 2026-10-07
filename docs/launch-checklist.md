@@ -94,7 +94,8 @@ Squarespace（`kokokikaku.com`、ログインは `mikan@kokokikaku.com`）でレ
 Firebase プロジェクト `misefits` の Secret Manager。共用の4つ（`STRIPE_SECRET_KEY` `SMTP_USER` `MAIL_FROM` `SMTP_PASS`）は既にある。新しく2つ足す。
 
 - `YP_LICENSE_PRIVATE_KEY` — **登録済み（2026-10-07、バージョン1）**。手元の PEM・アプリの公開鍵（`src/lib/license.ts`）と一致することを確認済み。
-- `YP_STRIPE_WEBHOOK_SECRET` — 未（リリース時）
+- `YP_STRIPE_WEBHOOK_SECRET` — **仮の値（`whsec_placeholder`）で登録済み（2026-10-07、バージョン1）**。リリース時に Webhook を作ったら本物に入れ替える（5章）
+- 置き場所は `misefits` のまま（2026-10-07 に運営者が決定。課金専用プロジェクトへの分離はしない）
 リポジトリ（`C:\Users\chaha\repos\yukyu-pon`）で実行する。
 
 ```bash
