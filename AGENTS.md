@@ -18,7 +18,7 @@
 7. **事実でないことを書かない。** 料金を変えたら README 4章の「同時に直すもの」を全部直す。
    条文番号は原文で確かめる。「労基署にそのまま出せる」「必ず適法」のような断定をしない。
 8. **秘密鍵はリポジトリに入れない。** `C:\Users\chaha\.yukyu-pon\license-private.pem`（Secret Manager の `YP_LICENSE_PRIVATE_KEY` にも同じもの）。発行台帳 `tools/issued-keys.csv`・`functions/.env` も公開しない。
-9. **`public/googleb736d92e1fe0566c.html` を消さない。** Search Console（studio@）の所有権の確認用（全銀ポンと同じファイル）。
+9. **`public/googleb736d92e1fe0566c.html` と `index.html` の `msvalidate.01` を消さない。** 順に Search Console（studio@）と Bing Webmaster Tools の所有確認用。
 
 ## 2. 課金（Stripe・Cloud Functions）
 
