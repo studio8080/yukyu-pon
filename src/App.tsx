@@ -52,8 +52,7 @@ export default function App() {
       <header className="no-print sticky top-0 z-10 border-b border-black/5 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2.5">
           <button type="button" onClick={() => go('home')} className="flex items-center gap-2">
-            <Logo />
-            <span className="text-xl font-extrabold tracking-tight text-brand-800">有休ポン</span>
+            <img src="./logo.png" alt="有休ポン" width={112} height={30} className="h-[30px] w-auto" />
           </button>
           <div className="flex items-center gap-2 text-sm">
             <label htmlFor="asof" className="text-slate-500">
@@ -210,18 +209,6 @@ function BackupReminder({ onSettings }: { onSettings: () => void }) {
   )
 }
 
-function Logo() {
-  return (
-    <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden>
-      <rect x="2" y="5" width="28" height="25" rx="6" fill="#15805f" />
-      <rect x="2" y="5" width="28" height="8" rx="4" fill="#0d513e" />
-      <rect x="8" y="2" width="3" height="7" rx="1.5" fill="#0b3d30" />
-      <rect x="21" y="2" width="3" height="7" rx="1.5" fill="#0b3d30" />
-      <circle cx="16" cy="21" r="5.5" fill="#f7b733" />
-      <path d="M13.5 21.2l1.8 1.8 3.4-3.6" stroke="#0b3d30" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
 
 function LicenseNotice() {
   const notice = useStore((s) => s.licenseNotice)

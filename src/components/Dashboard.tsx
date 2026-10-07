@@ -247,6 +247,7 @@ function Welcome({ onNavigate, onOpen, plan }: { onNavigate: (tab: string) => vo
           <p className="mb-2 inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-xs">
             <Sparkles size={14} /> 登録不要・データはこのブラウザの中だけ
           </p>
+          <img src="./logo-white.png" alt="有休ポン" width={208} height={56} className="mb-4 h-11 w-auto sm:h-14" />
           <h1 className="text-2xl font-bold leading-snug sm:text-3xl">
             有休の残り日数と「年5日」の期限を、
             <br className="hidden sm:block" />

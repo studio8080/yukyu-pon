@@ -1,9 +1,12 @@
 :root { --brand: #15805f; --ink: #1d2a26; --muted: #5b6b66; --line: #e3e8e5; --paper: #f7f6f1; }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--paper); color: var(--ink); font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", Meiryo, system-ui, sans-serif; line-height: 1.8; overflow-x: hidden; }
-header, main, footer { max-width: 760px; margin: 0 auto; padding: 0 16px; }
-header { display: flex; align-items: center; gap: 8px; padding-top: 16px; padding-bottom: 8px; }
-header a { color: var(--brand); font-weight: 800; font-size: 20px; text-decoration: none; }
+header.site, main, footer.site { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+header.site { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; padding-bottom: 10px; }
+header.site .brand img { display: block; height: 34px; width: auto; }
+header.site nav { display: flex; gap: 6px; flex-wrap: wrap; }
+header.site nav a { font-size: 14px; font-weight: 700; color: var(--brand); text-decoration: none; padding: 6px 12px; border-radius: 999px; border: 1px solid #b0e4d1; background: #fff; }
+header.site nav a:first-child { background: var(--brand); color: #fff; border-color: var(--brand); }
 main { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 24px 20px; margin-top: 8px; }
 h1 { font-size: 24px; margin: 0 0 4px; }
 h2 { font-size: 17px; margin: 28px 0 6px; border-left: 4px solid var(--brand); padding-left: 8px; }
@@ -14,7 +17,16 @@ table { border-collapse: collapse; width: 100%; font-size: 14px; }
 th, td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
 th { background: #f3f6f4; width: 30%; }
 a { color: var(--brand); }
-footer { color: var(--muted); font-size: 13px; padding-top: 16px; padding-bottom: 32px; }
+footer.site { color: var(--muted); font-size: 13px; padding-top: 24px; padding-bottom: 32px; }
+footer.site .cols { display: grid; gap: 16px; grid-template-columns: 1.2fr 1fr; border-top: 1px solid var(--line); padding-top: 20px; }
+footer.site .cols img { height: 26px; width: auto; }
+footer.site ul { list-style: none; padding: 0; margin: 0; }
+footer.site li { margin: 2px 0; }
+footer.site .copy { margin-top: 16px; }
+@media (max-width: 560px) { footer.site .cols { grid-template-columns: 1fr; } }
+.notfound { text-align: center; padding: 40px 20px; }
+.notfound .big { font-size: 72px; font-weight: 900; color: var(--brand); margin: 0; line-height: 1; }
+.notfound .btn { display: inline-block; padding: 10px 24px; }
 .plans { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin: 16px 0; }
 .plan { border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
 .plan.reco { border: 2px solid var(--brand); }

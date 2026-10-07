@@ -77,7 +77,7 @@ Squarespace（`kokokikaku.com`、ログインは `mikan@kokokikaku.com`）でレ
   ```
 - 請求書（領収書）を顧客に送信: オン
 
-4本の URL を `public/pricing.html` の `buy-pro-month` / `buy-pro-year` / `buy-biz-month` / `buy-biz-year` の `href` に入れ、`class="btn off"` の `off` と「（準備中）」を外す。
+4本の URL を `public/pricing.html` の `buy-pro-month` / `buy-pro-year` / `buy-biz-month` / `buy-biz-year` の `href` に入れ、`class="btn off"` の `off` と「（準備中）」を「月払いで申し込む」「年払いで申し込む」に直す。
 
 ### 3-3. カスタマーポータル（プランの変更を許可する）
 

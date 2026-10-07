@@ -7,10 +7,26 @@
 <meta name="description" content="有休ポンの料金。在籍5人まで無料、Pro（30人まで）月480円・年4,800円、ビジネス（人数無制限）月980円・年9,800円。すべて税込・いつでも解約できます。" />
 <link rel="canonical" href="https://yukyu.kokokikaku.com/pricing.html" />
 <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+<meta name="theme-color" content="#15805f" />
+<link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="有休ポン" />
+<meta property="og:title" content="料金プラン｜有休ポン" />
+<meta property="og:description" content="有休ポンの料金。在籍5人まで無料、Pro（30人まで）月480円・年4,800円、ビジネス（人数無制限）月980円・年9,800円。すべて税込・いつでも解約できます。" />
+<meta property="og:url" content="https://yukyu.kokokikaku.com/pricing.html" />
+<meta property="og:image" content="https://yukyu.kokokikaku.com/og.png" />
+<meta property="og:locale" content="ja_JP" />
+<meta name="twitter:card" content="summary_large_image" />
 <link rel="stylesheet" href="./pages.css" />
 </head>
 <body>
-<header><a href="./">有休ポン</a></header>
+<header class="site">
+  <a class="brand" href="./"><img src="./logo.png" alt="有休ポン" width="156" height="42" /></a>
+  <nav>
+    <a href="./">ツールを使う</a>
+    <a href="./pricing.html">料金</a>
+  </nav>
+</header>
 <main>
 <h1>料金プラン</h1>
 <p>機能はどのプランも同じです。違うのは、管理できる<strong>在籍中の人数</strong>だけ（退職した人は数えません）。すべて税込です。</p>
@@ -32,16 +48,16 @@
     <p class="price">¥480<span class="sub"> / 月</span></p>
     <p class="sub">年払い ¥4,800（2か月分お得）</p>
     <!-- Stripe の支払いリンクを href に入れ、class の off を外す -->
-    <a class="btn off" href="#" id="buy-pro-month">月払いで申し込む（準備中）</a>
-    <a class="btn off" href="#" id="buy-pro-year">年払いで申し込む（準備中）</a>
+    <a class="btn off" href="#" id="buy-pro-month">月払い（準備中）</a>
+    <a class="btn off" href="#" id="buy-pro-year">年払い（準備中）</a>
   </section>
   <section class="plan">
     <h3>ビジネス</h3>
     <p class="sub">人数無制限</p>
     <p class="price">¥980<span class="sub"> / 月</span></p>
     <p class="sub">年払い ¥9,800（2か月分お得）</p>
-    <a class="btn off" href="#" id="buy-biz-month">月払いで申し込む（準備中）</a>
-    <a class="btn off" href="#" id="buy-biz-year">年払いで申し込む（準備中）</a>
+    <a class="btn off" href="#" id="buy-biz-month">月払い（準備中）</a>
+    <a class="btn off" href="#" id="buy-biz-year">年払い（準備中）</a>
   </section>
 </div>
 
@@ -64,9 +80,21 @@
 <p><strong>パソコンを2台で使えますか？</strong><br />同じ事業者の中であれば、同じキーを複数のブラウザに入れて使えます。データはブラウザごとに別なので、バックアップのファイルで移してください。</p>
 <p><strong>適格請求書（インボイス）は出ますか？</strong><br />当社は適格請求書発行事業者の登録をしていないため、発行できません。Stripe の領収書は届きます。</p>
 </main>
-<footer>
-<p><a href="./">有休ポン</a>・<a href="./terms.html">利用規約</a>・<a href="./privacy.html">プライバシーポリシー</a>・<a href="./tokushoho.html">特定商取引法に基づく表記</a></p>
-<p>企画・開発・運営：<a href="https://kokokikaku.com/">ここ企画</a></p>
+<footer class="site">
+  <div class="cols">
+    <div>
+      <img src="./logo.png" alt="有休ポン" width="120" height="32" />
+      <p>有休の残り日数と「年5日」の期限を、名簿と休んだ日だけで。データはブラウザの外に出しません。</p>
+    </div>
+    <ul>
+      <li><a href="./">ツールを使う</a></li>
+      <li><a href="./pricing.html">料金プラン</a></li>
+      <li><a href="./terms.html">利用規約</a></li>
+      <li><a href="./privacy.html">プライバシーポリシー</a></li>
+      <li><a href="./tokushoho.html">特定商取引法に基づく表記</a></li>
+    </ul>
+  </div>
+  <p class="copy">企画・開発・運営：<a href="https://kokokikaku.com/">ここ企画</a>（お問い合わせ: studio@kokokikaku.com）</p>
 </footer>
 </body>
 </html>
