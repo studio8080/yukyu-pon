@@ -16,7 +16,7 @@ import { isISODate } from '../lib/dates'
 import { usePlan } from '../lib/plan'
 import { FREE_LIMIT } from '../config'
 import { useStore } from '../store'
-import { Badge, Button, Card, download, inputCls, Notice } from './ui'
+import { Badge, Button, Card, download, inputCls, Notice, PageHead } from './ui'
 
 type Mode = 'employees' | 'leaves'
 
@@ -96,6 +96,7 @@ export function ImportView({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="space-y-4">
+      <PageHead label="取り込む">Excel・CSV<small>から</small>取り込む</PageHead>
       <div className="flex flex-wrap gap-2" role="tablist">
         {(
           [
@@ -112,7 +113,7 @@ export function ImportView({ onDone }: { onDone: () => void }) {
               setTable([])
               setFileName('')
             }}
-            className={`rounded-full px-4 py-1.5 text-sm font-medium ${mode === k ? 'bg-brand-700 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200'}`}
+            className={`min-h-9 rounded-full px-4 py-1.5 text-sm font-bold ${mode === k ? 'bg-brand-500 text-white' : 'bg-white text-slate-700 ring-1 ring-line'}`}
           >
             {l}
           </button>
@@ -132,12 +133,12 @@ export function ImportView({ onDone }: { onDone: () => void }) {
               setDrag(false)
               onFile(e.dataTransfer.files[0])
             }}
-            className={`rounded-2xl border-2 border-dashed p-6 text-center transition ${drag ? 'border-brand-500 bg-brand-50' : 'border-slate-300'}`}
+            className={`rounded-[28px] border-2 border-dashed p-8 text-center transition ${drag ? 'border-brand-500 bg-brand-50' : 'border-slate-300'}`}
           >
             <FileUp className="mx-auto mb-2 text-brand-600" size={36} />
-            <p className="font-semibold text-slate-800">Excel・CSV ファイルをここに置く</p>
+            <p className="font-bold text-ink">Excel・CSV ファイルをここに置く</p>
             <p className="mb-3 text-sm text-slate-500">ファイルはこのブラウザの中で読むだけで、どこにも送りません。</p>
-            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700">
+            <label className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full bg-brand-500 px-5 py-2 font-bold text-white hover:bg-brand-600">
               <Upload size={16} /> ファイルを選ぶ
               <input type="file" accept=".xlsx,.xls,.csv,.txt,.tsv" className="sr-only" onChange={(e) => onFile(e.target.files?.[0])} />
             </label>
@@ -176,7 +177,7 @@ export function ImportView({ onDone }: { onDone: () => void }) {
         <>
           <Card>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="font-bold text-slate-800">
+              <h2 className="font-bold text-ink">
                 列の対応 <span className="text-sm font-normal text-slate-500">（{fileName}・{table.length - headerRow - 1}行）</span>
               </h2>
               <label className="flex items-center gap-2 text-sm">
@@ -195,7 +196,7 @@ export function ImportView({ onDone }: { onDone: () => void }) {
                 <label key={f.key} className="block text-sm">
                   <span className="font-medium text-slate-700">
                     {f.label}
-                    {f.required && <span className="text-red-600"> *</span>}
+                    {f.required && <span className="text-shu-500"> *</span>}
                   </span>
                   <select
                     className={`${inputCls} mt-1 !py-1.5`}
@@ -217,7 +218,7 @@ export function ImportView({ onDone }: { onDone: () => void }) {
 
           {migrating && (
             <Card className="!border-amber-200">
-              <h2 className="mb-1 font-bold text-slate-800">Excel からの引っ越し（今の残日数を引き継ぐ）</h2>
+              <h2 className="mb-1 font-bold text-ink">Excel からの引っ越し（今の残日数を引き継ぐ）</h2>
               <p className="mb-3 text-sm text-slate-600">
                 「今の残日数」の列があるので、次のルールで引き継ぎます。取り込む前に、Excel・賃金台帳の数字と照らして確認してください。
               </p>
@@ -234,10 +235,10 @@ export function ImportView({ onDone }: { onDone: () => void }) {
                 管理開始日（残日数を数えた日）
                 <input type="date" className={`${inputCls} !w-auto !py-1`} value={trackStart} onChange={(e) => isISODate(e.target.value) && setTrackStart(e.target.value)} />
               </label>
-              <div className="space-y-1.5 rounded-lg bg-amber-50 p-3 text-sm">
+              <div className="space-y-1.5 rounded-2xl bg-sun-100 p-3 text-sm">
                 {['残日数は、上の管理開始日の時点の数字である', '下の一覧の割り当て（付与日ごとの日数）を見て、Excel の内容と合っていることを確認した', '今期すでに休んだ日がある人は、取り込み後に「休んだ日」へ入れる（年5日の集計のため）'].map((t, i) => (
                   <label key={i} className="flex items-start gap-2">
-                    <input type="checkbox" className="mt-1 h-4 w-4 shrink-0 accent-brand-600" checked={migChecks[i]} onChange={(e) => setMigChecks(migChecks.map((c, j) => (j === i ? e.target.checked : c)))} />
+                    <input type="checkbox" className="mt-1 h-4 w-4 shrink-0 accent-brand-500" checked={migChecks[i]} onChange={(e) => setMigChecks(migChecks.map((c, j) => (j === i ? e.target.checked : c)))} />
                     <span>{t}</span>
                   </label>
                 ))}
@@ -246,10 +247,10 @@ export function ImportView({ onDone }: { onDone: () => void }) {
           )}
 
           <Card className="!p-0">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-3">
               <p className="text-sm">
                 <span className="font-semibold text-brand-800">取り込める {ok.length}件</span>
-                {bad.length > 0 && <span className="ml-3 font-semibold text-red-700">直してほしい {bad.length}件（取り込みません）</span>}
+                {bad.length > 0 && <span className="ml-3 font-semibold text-shu-700">直してほしい {bad.length}件（取り込みません）</span>}
               </p>
               <div className="flex gap-2">
                 <Button size="sm" onClick={() => setTable([])}>
@@ -279,13 +280,13 @@ export function ImportView({ onDone }: { onDone: () => void }) {
                 </Notice>
               </div>
             )}
-            <ul className="max-h-[28rem] divide-y divide-slate-100 overflow-y-auto">
+            <ul className="max-h-[28rem] divide-y divide-line overflow-y-auto">
               {plan.map((p) => (
                 <li key={p.line} className="flex gap-3 px-4 py-2 text-sm">
                   <span className="w-12 shrink-0 text-xs text-slate-400">{p.line}行目</span>
                   <span className="shrink-0">
                     {p.status === 'error' ? (
-                      <XCircle size={16} className="text-red-600" />
+                      <XCircle size={16} className="text-shu-500" />
                     ) : (
                       <Badge level={p.status === 'new' ? 'done' : 'ok'}>{p.status === 'new' ? (mode === 'leaves' ? '追加' : '新規') : '更新'}</Badge>
                     )}
@@ -294,7 +295,7 @@ export function ImportView({ onDone }: { onDone: () => void }) {
                     <span className="font-medium">{p.label}</span>
                     {p.leaves.length > 0 && <span className="ml-2 text-slate-500">取得 {p.leaves.length}件</span>}
                     {p.errors.map((e) => (
-                      <p key={e} className="text-red-700">
+                      <p key={e} className="text-shu-700">
                         {e}
                       </p>
                     ))}

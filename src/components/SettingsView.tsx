@@ -7,7 +7,7 @@ import { fmt, isISODate } from '../lib/dates'
 import { renewLicense, usePlan } from '../lib/plan'
 import type { FirstGrantRule, Settings } from '../lib/types'
 import { currentData, listSnapshots, makeBackup, parseBackup, restoreSnapshot, useStore } from '../store'
-import { Button, Card, download, Field, inputCls, Modal, Notice } from './ui'
+import { Button, Card, download, Field, inputCls, Modal, Notice, PageHead } from './ui'
 
 function Choice<T extends string>({ value, current, onPick, title, desc }: { value: T; current: T; onPick: (v: T) => void; title: string; desc: string }) {
   const on = value === current
@@ -17,9 +17,9 @@ function Choice<T extends string>({ value, current, onPick, title, desc }: { val
       role="radio"
       aria-checked={on}
       onClick={() => onPick(value)}
-      className={`rounded-xl border p-3 text-left transition ${on ? 'border-brand-600 bg-brand-50 ring-2 ring-brand-100' : 'border-slate-200 bg-white hover:border-brand-300'}`}
+      className={`rounded-xl border p-3 text-left transition ${on ? 'border-brand-600 bg-brand-50 ring-2 ring-brand-100' : 'border-line bg-white hover:border-brand-300'}`}
     >
-      <span className="block font-semibold text-slate-800">{title}</span>
+      <span className="block font-bold text-ink">{title}</span>
       <span className="mt-0.5 block text-sm text-slate-600">{desc}</span>
     </button>
   )
@@ -27,10 +27,10 @@ function Choice<T extends string>({ value, current, onPick, title, desc }: { val
 
 function Toggle({ checked, onChange, label, desc }: { checked: boolean; onChange: (v: boolean) => void; label: string; desc: string }) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50">
-      <input type="checkbox" className="mt-1 h-4 w-4 shrink-0 accent-brand-600" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+    <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-line p-3 hover:bg-paper">
+      <input type="checkbox" className="mt-1 h-4 w-4 shrink-0 accent-brand-500" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       <span>
-        <span className="block font-semibold text-slate-800">{label}</span>
+        <span className="block font-bold text-ink">{label}</span>
         <span className="block text-sm text-slate-600">{desc}</span>
       </span>
     </label>
@@ -52,8 +52,9 @@ export function SettingsView() {
 
   return (
     <div className="space-y-4">
+      <PageHead label="設定">会社<small>の</small>ルール<small>と</small>データ</PageHead>
       <Card>
-        <h2 className="mb-3 text-lg font-bold text-slate-800">会社のルール</h2>
+        <h2 className="mb-3 font-display text-lg text-ink">会社のルール</h2>
         <Field label="会社名（管理簿の見出しに入ります）" className="mb-4 max-w-md">
           <input className={inputCls} value={s.companyName} onChange={(e) => set({ companyName: e.target.value })} />
         </Field>
@@ -72,7 +73,7 @@ export function SettingsView() {
         <UniformConfirm open={confirmUniform} onClose={() => setConfirmUniform(false)} />
 
         {s.grantRule === 'uniform' && (
-          <div className="mt-4 space-y-4 rounded-xl bg-slate-50 p-3">
+          <div className="mt-4 space-y-4 rounded-2xl bg-paper p-4">
             <div className="flex flex-wrap items-end gap-3">
               <Field label="毎年の付与日">
                 <div className="flex items-center gap-1">
@@ -145,7 +146,7 @@ export function SettingsView() {
       </Card>
 
       <Card>
-        <h2 className="mb-3 text-lg font-bold text-slate-800">取得の単位と確認</h2>
+        <h2 className="mb-3 font-display text-lg text-ink">取得の単位と確認</h2>
         <div className="grid gap-2 md:grid-cols-3">
           <Toggle checked={s.halfDayEnabled} onChange={(v) => set({ halfDayEnabled: v })} label="半日単位（半休）を使う" desc="午前・午後を0.5日で数えます。年5日の義務にも0.5日として数えます。" />
           <Toggle
@@ -185,7 +186,7 @@ function UniformConfirm({ open, onClose }: { open: boolean; onClose: () => void 
         </p>
         {items.map((t, i) => (
           <label key={i} className="flex items-start gap-2">
-            <input type="checkbox" className="mt-1 h-4 w-4 shrink-0 accent-brand-600" checked={checks[i]} onChange={(e) => setChecks(checks.map((c, j) => (j === i ? e.target.checked : c)))} />
+            <input type="checkbox" className="mt-1 h-4 w-4 shrink-0 accent-brand-500" checked={checks[i]} onChange={(e) => setChecks(checks.map((c, j) => (j === i ? e.target.checked : c)))} />
             <span>{t}</span>
           </label>
         ))}
@@ -255,7 +256,7 @@ function BackupCard() {
 
   return (
     <Card>
-      <h2 className="mb-1 flex items-center gap-2 text-lg font-bold text-slate-800">
+      <h2 className="mb-1 flex items-center gap-2 font-display text-lg text-ink">
         <ShieldCheck size={20} className="text-brand-600" /> データの保管とバックアップ
       </h2>
       <p className="mb-4 text-sm text-slate-600">
@@ -264,8 +265,8 @@ function BackupCard() {
       </p>
 
       <div className="space-y-4">
-        <section className="rounded-xl border border-slate-200 p-3">
-          <h3 className="mb-1 flex items-center gap-2 font-semibold text-slate-800">
+        <section className="rounded-2xl border border-line p-3">
+          <h3 className="mb-1 flex items-center gap-2 font-bold text-ink">
             <FolderSync size={18} /> 1. 自動バックアップ（おすすめ）
           </h3>
           {auto.state === 'unsupported' ? (
@@ -310,23 +311,23 @@ function BackupCard() {
           )}
         </section>
 
-        <section className="rounded-xl border border-slate-200 p-3">
-          <h3 className="mb-1 flex items-center gap-2 font-semibold text-slate-800">
+        <section className="rounded-2xl border border-line p-3">
+          <h3 className="mb-1 flex items-center gap-2 font-bold text-ink">
             <Download size={18} /> 2. ファイルに保存・ファイルから戻す
           </h3>
           <p className="mb-2 text-sm text-slate-600">別のパソコンに移すときや、月に一度の控えに。前回の保存: {lastBackupAt ? new Date(lastBackupAt).toLocaleString('ja-JP') : 'まだありません'}</p>
           <label className="mb-2 flex items-center gap-2 text-sm">
-            <input type="checkbox" className="h-4 w-4 accent-brand-600" checked={encrypt} onChange={(e) => setEncrypt(e.target.checked)} />
+            <input type="checkbox" className="h-4 w-4 accent-brand-500" checked={encrypt} onChange={(e) => setEncrypt(e.target.checked)} />
             <Lock size={14} /> パスワードで暗号化する（メールで送る・共有フォルダに置くときにおすすめ）
           </label>
           {encrypt && (
-            <div className="mb-3 space-y-2 rounded-lg bg-slate-50 p-3">
+            <div className="mb-3 space-y-2 rounded-2xl bg-paper p-4">
               <div className="flex flex-wrap gap-2">
                 <input type="password" autoComplete="new-password" className={`${inputCls} !w-56`} placeholder={`パスワード（${MIN_PASSWORD}文字以上）`} value={pw} onChange={(e) => setPw(e.target.value)} aria-label="暗号化のパスワード" />
                 <input type="password" autoComplete="new-password" className={`${inputCls} !w-56`} placeholder="もう一度" value={pw2} onChange={(e) => setPw2(e.target.value)} aria-label="暗号化のパスワード（確認）" />
               </div>
-              {pw2 && pw !== pw2 && <p className="text-xs text-red-700">2つのパスワードが一致しません。</p>}
-              <p className="text-xs text-amber-800">
+              {pw2 && pw !== pw2 && <p className="text-xs text-shu-700">2つのパスワードが一致しません。</p>}
+              <p className="text-xs text-sun-700">
                 パスワードはどこにも保存しません。<strong>忘れると、運営者を含め誰も戻せません。</strong>ファイルとは別の場所（パスワード管理アプリなど）に控えてください。
               </p>
             </div>
@@ -335,7 +336,7 @@ function BackupCard() {
             <Button variant="primary" onClick={saveFile} disabled={!pwOk || busy}>
               <Download size={16} /> {busy ? '暗号化しています…' : encrypt ? '暗号化して保存' : 'ファイルに保存'}
             </Button>
-            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-4 py-2 font-medium text-brand-800 hover:bg-brand-50">
+            <label className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full border border-brand-200 bg-white px-5 py-2 font-bold text-brand-700 hover:bg-brand-50">
               <Upload size={16} /> ファイルから戻す
               <input
                 type="file"
@@ -378,7 +379,7 @@ function BackupCard() {
           >
             <p>保存したときのパスワードを入れてください。</p>
             <input type="password" autoComplete="current-password" className={inputCls} value={openPw} onChange={(e) => setOpenPw(e.target.value)} aria-label="バックアップのパスワード" autoFocus />
-            {msg?.tone === 'warn' && pending && <p className="text-red-700">{msg.text}</p>}
+            {msg?.tone === 'warn' && pending && <p className="text-shu-700">{msg.text}</p>}
             <div className="flex gap-2">
               <Button variant="primary" type="submit" disabled={!openPw || busy}>
                 {busy ? '確かめています…' : '戻す'}
@@ -388,15 +389,15 @@ function BackupCard() {
           </form>
         </Modal>
 
-        <section className="rounded-xl border border-slate-200 p-3">
-          <h3 className="mb-1 flex items-center gap-2 font-semibold text-slate-800">
+        <section className="rounded-2xl border border-line p-3">
+          <h3 className="mb-1 flex items-center gap-2 font-bold text-ink">
             <History size={18} /> 3. 復元ポイント（操作の取り消し）
           </h3>
           <p className="mb-2 text-sm text-slate-600">取り込み・削除・戻すの前と、毎日最初の変更のときに、自動で控えを取っています（最大12件。このブラウザの中なので、ブラウザのデータを消すと一緒に消えます）。</p>
           {snaps.length === 0 ? (
             <p className="text-sm text-slate-500">まだありません。</p>
           ) : (
-            <ul className="divide-y divide-slate-100 rounded-lg border border-slate-100 text-sm">
+            <ul className="divide-y divide-line rounded-lg border border-line text-sm">
               {snaps.map((sn) => (
                 <li key={sn.at} className="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5">
                   <span>
@@ -428,7 +429,7 @@ function BackupCard() {
           <Notice tone={msg.tone}>{msg.text}</Notice>
         </div>
       )}
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
         <p className="text-xs text-slate-500">バックアップのファイルには氏名や休んだ日が入っています。メールで送ったり共有フォルダに置いたりするときは、扱いに注意してください。</p>
         <Button
           variant="danger"
@@ -456,13 +457,13 @@ function ProCard() {
   const lic = plan.license
   return (
     <Card>
-      <h2 className="mb-1 flex items-center gap-2 text-lg font-bold text-slate-800" id="pro">
+      <h2 className="mb-1 flex items-center gap-2 font-display text-lg text-ink" id="pro">
         <Crown size={20} className="text-sun-500" /> 料金プラン
       </h2>
       <div className="my-3 grid gap-2 sm:grid-cols-3">
         {PLANS.map((p) => (
-          <div key={p.key} className="rounded-xl border border-slate-200 p-3">
-            <p className="font-bold text-slate-800">{p.name}</p>
+          <div key={p.key} className="rounded-2xl border border-line p-3">
+            <p className="font-bold text-ink">{p.name}</p>
             <p className="text-sm text-slate-600">{p.limit ? `在籍${p.limit}人まで` : '人数無制限'}</p>
             <p className="mt-1 text-lg font-bold text-brand-800">{p.month ? `月¥${p.month.toLocaleString()}` : '¥0'}</p>
             {p.year > 0 && <p className="text-xs text-slate-500">年払い ¥{p.year.toLocaleString()}（2か月分お得）</p>}
@@ -503,7 +504,7 @@ function ProCard() {
           >
             有効にする
           </Button>
-          {key && lic && !lic.ok && <p className="w-full text-sm text-red-700">{lic.reason}</p>}
+          {key && lic && !lic.ok && <p className="w-full text-sm text-shu-700">{lic.reason}</p>}
         </div>
       )}
       {msg && <p className="mt-2 text-sm text-slate-600">{msg}</p>}

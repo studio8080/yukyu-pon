@@ -20,7 +20,7 @@ export function NoticeSlips() {
       <Card className="no-print">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="text-lg font-bold text-slate-800">本人へのお知らせ</h2>
+            <h2 className="font-display text-lg text-ink">本人へのお知らせ</h2>
             <p className="text-sm text-slate-600">残日数・消える日・次の付与・年5日の進み具合を、1人1枚にまとめて印刷します（A4に3人分。切って渡せます）。</p>
           </div>
           <Button variant="primary" disabled={shown.length === 0} onClick={() => window.print()}>
@@ -29,10 +29,10 @@ export function NoticeSlips() {
         </div>
         <div className="mt-3 flex flex-wrap gap-2 text-sm">
           {reports.map((r) => (
-            <label key={r.employee.id} className="flex items-center gap-1 rounded-full border border-slate-200 px-2 py-0.5">
+            <label key={r.employee.id} className="flex items-center gap-1 rounded-full border border-line px-2 py-0.5">
               <input
                 type="checkbox"
-                className="h-3.5 w-3.5 accent-brand-600"
+                className="h-3.5 w-3.5 accent-brand-500"
                 checked={sel.has(r.employee.id)}
                 onChange={() => {
                   const n = new Set(sel)
@@ -52,8 +52,8 @@ export function NoticeSlips() {
           const lots = r.lots.filter((l) => l.remaining > 0 && l.expires > asOf)
           const w = r.focus?.status === 'active' ? r.focus : null
           return (
-            <section key={r.employee.id} className="print-break rounded-2xl border border-slate-300 bg-white p-5 print:mb-[6mm] print:rounded-none print:border-dashed">
-              <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-slate-200 pb-2">
+            <section key={r.employee.id} className="print-break rounded-[24px] border border-line bg-white p-6 print:mb-[6mm] print:rounded-none print:border-dashed">
+              <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line pb-2">
                 <h3 className="text-lg font-bold">{r.employee.name} さん　年次有給休暇のお知らせ</h3>
                 <span className="text-sm text-slate-600">
                   {fmt(asOf)} 現在{settings.companyName && `・${settings.companyName}`}

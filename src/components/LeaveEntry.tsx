@@ -6,7 +6,7 @@ import { parseDateList } from '../lib/importer'
 import { leaveLabel, LEAVE_LABEL, type LeaveKind, type LeaveRecord, type Settings } from '../lib/types'
 import { useReports } from '../lib/view'
 import { useStore } from '../store'
-import { Button, Card, Field, inputCls, Notice } from './ui'
+import { Button, Card, Field, inputCls, Notice, PageHead } from './ui'
 
 /** 区分の選択（設定で使わない区分は出さない）。時間単位のときは時間数も選ぶ */
 export function KindPicker({ kind, hours, onChange, settings }: { kind: LeaveKind; hours: number; onChange: (k: LeaveKind, h: number) => void; settings: Settings }) {
@@ -22,7 +22,7 @@ export function KindPicker({ kind, hours, onChange, settings }: { kind: LeaveKin
           role="radio"
           aria-checked={kind === k}
           onClick={() => onChange(k, hours)}
-          className={`rounded-lg border px-3 py-1.5 text-sm ${kind === k ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
+          className={`min-h-9 rounded-full border px-4 py-1.5 text-sm font-bold ${kind === k ? 'border-brand-500 bg-brand-500 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
         >
           {LEAVE_LABEL[k]}
         </button>
@@ -95,9 +95,10 @@ export function LeaveEntry({ onOpen }: { onOpen: (id: string) => void }) {
 
   return (
     <div className="space-y-4">
+      <PageHead label="休んだ日">休んだ日<small>を</small>入れる</PageHead>
       <div className="grid gap-4 lg:grid-cols-[22rem_1fr]">
         <Card className="h-fit">
-          <h2 className="mb-3 text-lg font-bold text-slate-800">休んだ日を入れる</h2>
+          <h2 className="mb-3 font-display text-lg text-ink">1人ずつ入れる</h2>
           <div className="space-y-3">
             <Field label="だれが">
               <select className={inputCls} value={empId} onChange={(e) => setEmpId(e.target.value)}>
@@ -126,7 +127,7 @@ export function LeaveEntry({ onOpen }: { onOpen: (id: string) => void }) {
               <p className="text-xs text-slate-600">
                 読み取り: {parsed.dates.length ? parsed.dates.map((d) => fmt(d, true)).join('、') : 'なし'}
                 {parsed.guessed && <span className="text-amber-700">（年を補いました）</span>}
-                {parsed.bad.length > 0 && <span className="block text-red-700">読めない: {parsed.bad.join('、')}</span>}
+                {parsed.bad.length > 0 && <span className="block text-shu-700">読めない: {parsed.bad.join('、')}</span>}
               </p>
             )}
             <Button variant="primary" className="w-full" disabled={!empId || parsed.dates.length === 0 || parsed.bad.length > 0} onClick={submit}>
@@ -144,16 +145,16 @@ export function LeaveEntry({ onOpen }: { onOpen: (id: string) => void }) {
             <Button size="sm" variant="ghost" onClick={() => shift(-1)} aria-label="前の月">
               <ChevronLeft size={18} />
             </Button>
-            <h2 className="text-lg font-bold text-slate-800">
+            <h2 className="font-display text-lg text-ink">
               {y}年{m}月 <span className="text-sm font-normal text-slate-500">合計 {fmtDays(Math.round(monthTotal * 10) / 10)}</span>
             </h2>
             <Button size="sm" variant="ghost" onClick={() => shift(1)} aria-label="次の月">
               <ChevronRight size={18} />
             </Button>
           </div>
-          <div className="grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 text-xs">
+          <div className="grid grid-cols-7 gap-px overflow-hidden rounded-2xl border border-line bg-slate-200 text-xs">
             {['日', '月', '火', '水', '木', '金', '土'].map((w, i) => (
-              <div key={w} className={`bg-slate-50 py-1 text-center font-medium ${i === 0 ? 'text-red-600' : i === 6 ? 'text-sky-700' : 'text-slate-600'}`}>
+              <div key={w} className={`bg-paper py-1 text-center font-medium ${i === 0 ? 'text-shu-500' : i === 6 ? 'text-sky-700' : 'text-slate-600'}`}>
                 {w}
               </div>
             ))}
@@ -177,7 +178,7 @@ export function LeaveEntry({ onOpen }: { onOpen: (id: string) => void }) {
                           </button>
                           <button
                             type="button"
-                            className="hidden shrink-0 text-slate-400 hover:text-red-600 group-hover:block"
+                            className="hidden shrink-0 text-slate-400 hover:text-shu-500 group-hover:block"
                             aria-label={`${name} の ${d} を削除`}
                             onClick={() => useStore.getState().removeLeave(l.id)}
                           >
@@ -233,7 +234,7 @@ function BulkEntry() {
 
   return (
     <Card>
-      <h2 className="mb-1 flex items-center gap-2 text-lg font-bold text-slate-800">
+      <h2 className="mb-1 flex items-center gap-2 font-display text-lg text-ink">
         <Users size={20} className="text-brand-600" /> まとめて登録（計画的付与・一斉休暇）
       </h2>
       <p className="mb-3 text-sm text-slate-600">
@@ -259,7 +260,7 @@ function BulkEntry() {
           {text && (
             <p className="text-xs text-slate-600">
               読み取り: {parsed.dates.map((d) => fmt(d, true)).join('、') || 'なし'}
-              {parsed.bad.length > 0 && <span className="block text-red-700">読めない: {parsed.bad.join('、')}</span>}
+              {parsed.bad.length > 0 && <span className="block text-shu-700">読めない: {parsed.bad.join('、')}</span>}
             </p>
           )}
           <Button
@@ -288,13 +289,13 @@ function BulkEntry() {
               年5日がまだの人だけ（{behind.length}）
             </Button>
           </div>
-          <ul className="max-h-64 divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-200">
+          <ul className="max-h-64 divide-y divide-line overflow-y-auto rounded-2xl border border-line">
             {active.map((r) => (
               <li key={r.employee.id}>
-                <label className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm hover:bg-slate-50">
-                  <input type="checkbox" className="h-4 w-4 accent-brand-600" checked={sel.has(r.employee.id)} onChange={() => toggle(r.employee.id)} />
+                <label className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm hover:bg-paper">
+                  <input type="checkbox" className="h-4 w-4 accent-brand-500" checked={sel.has(r.employee.id)} onChange={() => toggle(r.employee.id)} />
                   <span className="flex-1">{r.employee.name}</span>
-                  {r.focus?.status === 'active' && r.focus.needed > 0 && <span className="text-xs text-amber-800">あと{fmtDays(r.focus.needed)}</span>}
+                  {r.focus?.status === 'active' && r.focus.needed > 0 && <span className="text-xs text-sun-700">あと{fmtDays(r.focus.needed)}</span>}
                   <span className="text-xs text-slate-500">残 {fmtDays(Math.round(r.balance * 10) / 10)}</span>
                 </label>
               </li>

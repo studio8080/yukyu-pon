@@ -1,38 +1,137 @@
 @import "tailwindcss";
 
-@theme {
-  --font-sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
-  --color-brand-50: #effaf6;
-  --color-brand-100: #d7f2e7;
-  --color-brand-200: #b0e4d1;
-  --color-brand-500: #1f9d77;
-  --color-brand-600: #15805f;
-  --color-brand-700: #10664d;
-  --color-brand-800: #0d513e;
-  --color-brand-900: #0b3d30;
-  --color-sun-100: #fff1d6;
-  --color-sun-400: #f7b733;
-  --color-sun-500: #ec9a0e;
-  --color-paper: #f7f6f1;
+/*
+ * 有休ポンの設計言語（2026-10-07、案A「休暇届にハンコをポン」）
+ * 参考: シフトラ（鮮やかな単色の角丸ヒーロー・助詞を小さくする見出し・ピル型ボタン・吹き出し）
+ *       KAGAMI（四角マーカーの見出し・淡い大きなパネル・余白）
+ *
+ * 色   … 緑（brand）が主役。朱（shu）は「至急・未達」だけ。黄（sun）は「ポン」の効果線と注意。
+ * 書体 … 見出し・数字・ラベル＝丸ゴシック極太（同梱のサブセット）。本文＝端末の書体（データを外に出さないため外部フォントなし）。
+ * 角丸 … 大きな面 28px（rounded-[28px]）／カード 20px（rounded-[20px]）／入力 12px（rounded-xl）／ボタン・状態 999px。
+ * 影   … 浮かぶもの（ヒーローの見本カード・ダイアログ）だけ。ほかは 1px の線。
+ * 余白 … 4/8/12/16/24/32/48/72。
+ */
+
+@font-face {
+  font-family: "YukyuRounded";
+  src: url("/fonts/yukyu-rounded-800.woff2") format("woff2");
+  font-weight: 800;
+  font-display: swap;
 }
 
-html {
-  -webkit-text-size-adjust: 100%;
+@theme {
+  --font-sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+  --font-display: "YukyuRounded", "Hiragino Maru Gothic ProN", "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+
+  --color-brand-50: #effaf5;
+  --color-brand-100: #d9f3e7;
+  --color-brand-200: #b2e6cf;
+  --color-brand-300: #7fd3b0;
+  --color-brand-400: #3fbe8b;
+  --color-brand-500: #10a56e;
+  --color-brand-600: #0b8f60;
+  --color-brand-700: #0a7350;
+  --color-brand-800: #0c5b41;
+  --color-brand-900: #0c3b2e;
+
+  --color-sun-100: #fff4d1;
+  --color-sun-400: #ffcb3d;
+  --color-sun-500: #f2b10c;
+  --color-sun-700: #8a5d00;
+
+  --color-shu-50: #fdeceb;
+  --color-shu-100: #fbd5d2;
+  --color-shu-500: #e5483a;
+  --color-shu-700: #b42c20;
+
+  --color-ink: #0c3b2e;
+  --color-paper: #f3f7f5;
+  --color-line: #e2ebe6;
 }
-body {
-  background: var(--color-paper);
-  color: #1d2a26;
-  font-family: var(--font-sans);
-  overflow-x: hidden;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--color-paper);
+    color: #22362f;
+    font-family: var(--font-sans);
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+  }
+  h1,
+  h2,
+  h3 {
+    color: var(--color-ink);
+    font-feature-settings: "palt";
+    text-wrap: balance;
+    word-break: auto-phrase;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
 }
-input,
-select,
-textarea,
-button {
-  font: inherit;
+
+/* 見出し・数字用の丸ゴシック */
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  font-feature-settings: "palt";
 }
-.tabular {
-  font-variant-numeric: tabular-nums;
+/* 見出しの中の助詞を小さく（例: 有休<small>の</small>） */
+.font-display small,
+.ptc {
+  font-size: 0.66em;
+}
+/* 四角マーカー付きの小見出し（■ はじめかた） */
+.sq-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-brand-600);
+  letter-spacing: 0.02em;
+}
+.sq-label::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--color-brand-500);
+}
+/* ハンコ（達成の印） */
+.stamp {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 2.5px solid currentColor;
+  font-family: var(--font-display);
+  font-weight: 800;
+  transform: rotate(-10deg);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .stamp-in {
+    animation: stamp-in 0.35s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+  }
+  @keyframes stamp-in {
+    from {
+      opacity: 0;
+      transform: rotate(-10deg) scale(1.6);
+    }
+    to {
+      opacity: 1;
+      transform: rotate(-10deg) scale(1);
+    }
+  }
 }
 
 @media print {

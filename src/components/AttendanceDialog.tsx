@@ -53,11 +53,11 @@ export function AttendanceDialog({ emp, grant, onClose }: { emp: Employee | null
             </Field>
           </div>
           {rate != null && (
-            <p className={`rounded-lg px-3 py-2 text-base font-semibold ${rate >= 0.8 ? 'bg-brand-50 text-brand-800' : 'bg-red-50 text-red-800'}`}>
+            <p className={`rounded-lg px-3 py-2 text-base font-semibold ${rate >= 0.8 ? 'bg-brand-50 text-brand-800' : 'bg-shu-50 text-shu-700'}`}>
               出勤率 {(rate * 100).toFixed(1)}% → {rate >= 0.8 ? '8割以上なので付与します' : '8割未満なので、この回は付与しません'}
             </p>
           )}
-          <details className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
+          <details className="rounded-lg bg-paper px-3 py-2 text-xs text-slate-600">
             <summary className="cursor-pointer font-medium text-slate-700">数え方（出勤とみなす日・数えない日）</summary>
             <ul className="mt-2 list-disc space-y-1 pl-4">
               <li>出勤したものとみなす: 年休を取った日、仕事でのけが・病気の休業、産前産後の休業、育児休業・介護休業の期間</li>

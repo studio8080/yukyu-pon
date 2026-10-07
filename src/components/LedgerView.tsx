@@ -4,12 +4,15 @@ import { fmt, fmtDays } from '../lib/dates'
 import { datesText, exportExcel, ledgerRows, type LedgerRange, type LedgerRow } from '../lib/exporter'
 import { useStore } from '../store'
 import { NoticeSlips } from './NoticeSlips'
-import { Button, Card, Notice } from './ui'
+import { Button, Card, Notice, PageHead } from './ui'
 
 export function LedgerView() {
   const [view, setView] = useState<'ledger' | 'slips'>('ledger')
   return (
     <div className="space-y-4">
+      <div className="no-print">
+        <PageHead label="管理簿">管理簿<small>と</small>本人へ<small>の</small>お知らせ</PageHead>
+      </div>
       <div className="no-print flex gap-2" role="tablist">
         {(
           [
@@ -22,7 +25,7 @@ export function LedgerView() {
             role="tab"
             aria-selected={view === k}
             onClick={() => setView(k)}
-            className={`rounded-full px-4 py-1.5 text-sm font-medium ${view === k ? 'bg-brand-700 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200'}`}
+            className={`min-h-9 rounded-full px-4 py-1.5 text-sm font-bold ${view === k ? 'bg-brand-500 text-white' : 'bg-white text-slate-700 ring-1 ring-line'}`}
           >
             {l}
           </button>
@@ -57,7 +60,7 @@ function Ledger() {
       <Card className="no-print">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="text-lg font-bold text-slate-800">年次有給休暇管理簿</h2>
+            <h2 className="font-display text-lg text-ink">年次有給休暇管理簿</h2>
             <p className="text-sm text-slate-600">労働者ごとに「基準日・日数・時季（取得した日）」をまとめた帳簿です。期間の満了後5年間（当分の間は3年間）保存します。</p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -90,7 +93,7 @@ function Ledger() {
             </select>
           </label>
           <label className="flex items-center gap-1.5">
-            <input type="checkbox" className="h-4 w-4 accent-brand-600" checked={retired} onChange={(e) => setRetired(e.target.checked)} />
+            <input type="checkbox" className="h-4 w-4 accent-brand-500" checked={retired} onChange={(e) => setRetired(e.target.checked)} />
             退職者も載せる
           </label>
         </div>
@@ -107,14 +110,14 @@ function Ledger() {
           </div>
           {groups.map((g) => (
             <Card key={`${g[0].code}${g[0].name}${g[0].hireDate}`} className="print-break !p-0 print:!rounded-none print:!border-slate-400 print:!shadow-none">
-              <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-slate-100 px-4 py-2">
-                <h3 className="font-bold text-slate-800">{g[0].name}</h3>
+              <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-line px-4 py-2">
+                <h3 className="font-bold text-ink">{g[0].name}</h3>
                 {g[0].code && <span className="text-sm text-slate-500">社員番号 {g[0].code}</span>}
                 <span className="text-sm text-slate-500">入社 {fmt(g[0].hireDate)}</span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[48rem] text-sm">
-                  <thead className="bg-slate-50 text-left text-xs text-slate-600">
+                  <thead className="bg-paper text-left text-xs font-bold text-slate-600">
                     <tr>
                       <th className="px-3 py-1.5">基準日</th>
                       <th className="px-3 py-1.5">契約</th>
@@ -126,7 +129,7 @@ function Ledger() {
                       <th className="px-3 py-1.5">年5日</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 tabular">
+                  <tbody className="divide-y divide-line tabular">
                     {g.map((r) => (
                       <tr key={r.grantDate} className="align-top">
                         <td className="whitespace-nowrap px-3 py-1.5">{fmt(r.grantDate)}</td>

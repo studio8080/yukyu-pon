@@ -46,6 +46,9 @@ $N node_modules/vitest/vitest.mjs run && $N functions/test/functions.test.js && 
 `npm install` をやり直すときは `PATH=/c/Users/chaha/tools/node-v24.14.0-win-x64:$PATH npm i --cpu=x64 --os=win32`。
 ブラウザのペインが非表示だと、dialog の close イベントやスクリーンショットが止まることがある（コードの不具合と取り違えない）。
 
+画面の見た目は README 5章「画面のデザイン」に従う（緑が主役、黄・朱は状態にだけ、見出しは `.font-display`＋助詞は `<small>`）。
+**見出し・ボタンに新しい漢字を足したら `python tools/subset-font.py <TTF>` でフォントを作り直す。** フォントを外部から読み込まない。
+
 ## 4. データの互換
 
 localStorage のキーは `yukyu-pon:v1`（`src/store.ts`、persist の version 2）。設定の項目は `merge` で既定値を補うので、足すだけなら移行は要らない。

@@ -34,7 +34,7 @@ export function EmployeeEditor({ id, onClose }: { id: string | null; onClose: ()
                 role="tab"
                 aria-selected={tab === k}
                 onClick={() => setTab(k)}
-                className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium ${tab === k ? 'bg-brand-700 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                className={`shrink-0 min-h-9 rounded-full px-4 py-1.5 text-sm font-bold ${tab === k ? 'bg-brand-500 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
               >
                 {l}
               </button>
@@ -63,7 +63,7 @@ function Warnings({ emp }: { emp: Employee }) {
   const r = useReport(emp)
   if (r.warnings.length === 0) return null
   return (
-    <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+    <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-sun-700">
       <p className="mb-1 flex items-center gap-1 font-semibold">
         <AlertTriangle size={16} /> 確認してください
       </p>
@@ -159,7 +159,7 @@ function ContractInputs({ c, onChange }: { c: Contract; onChange: (c: Contract) 
         </label>
       )}
       <label className="flex items-center gap-1.5 text-sm">
-        <input type="checkbox" className="h-4 w-4 accent-brand-600" checked={c.over30h} onChange={(e) => onChange({ ...c, over30h: e.target.checked })} />
+        <input type="checkbox" className="h-4 w-4 accent-brand-500" checked={c.over30h} onChange={(e) => onChange({ ...c, over30h: e.target.checked })} />
         週30時間以上
       </label>
       {hourly && (
@@ -195,7 +195,7 @@ function Contracts({ emp }: { emp: Employee }) {
       </Notice>
       <ol className="space-y-3">
         {list.map((c, i) => (
-          <li key={`${c.from}-${i}`} className="rounded-xl border border-slate-200 p-3">
+          <li key={`${c.from}-${i}`} className="rounded-2xl border border-line p-3">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <label className="flex items-center gap-2 text-sm">
                 <span className="font-medium">{i === 0 ? '入社時の契約' : '変更後の契約'}</span>
@@ -269,9 +269,9 @@ function Grants({ emp }: { emp: Employee }) {
 
   return (
     <div className="space-y-4">
-      <div className="overflow-x-auto rounded-xl border border-slate-200">
+      <div className="overflow-x-auto rounded-2xl border border-line">
         <table className="w-full min-w-[44rem] text-sm">
-          <thead className="bg-slate-50 text-left text-xs text-slate-600">
+          <thead className="bg-paper text-left text-xs font-bold text-slate-600">
             <tr>
               <th className="px-3 py-2">付与日</th>
               <th className="px-3 py-2">勤続</th>
@@ -282,7 +282,7 @@ function Grants({ emp }: { emp: Employee }) {
               <th className="px-3 py-2">年5日</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-line">
             {rows.map((g) => {
               const w = winOf(g.date)
               const future = g.date > r.asOf
@@ -374,11 +374,11 @@ function ExtraGrants({ emp }: { emp: Employee }) {
   const [days, setDays] = useState(1)
   const [note, setNote] = useState('')
   return (
-    <div className="rounded-xl border border-slate-200 p-3">
-      <h3 className="mb-1 font-semibold text-slate-800">会社独自の上乗せ</h3>
+    <div className="rounded-2xl border border-line p-3">
+      <h3 className="mb-1 font-bold text-ink">会社独自の上乗せ</h3>
       <p className="mb-3 text-xs text-slate-500">創業記念の+1日など、法定とは別に付与した年休。残日数に足します（時効は2年として計算）。</p>
       {emp.extraGrants.length > 0 && (
-        <ul className="mb-3 divide-y divide-slate-100 text-sm">
+        <ul className="mb-3 divide-y divide-line text-sm">
           {emp.extraGrants.map((x) => (
             <li key={x.id} className="flex items-center justify-between gap-2 py-1.5">
               <span>
@@ -424,7 +424,7 @@ function Leaves({ emp }: { emp: Employee }) {
   const shortfall = new Set(r.uses.filter((u) => u.shortfall > 0).map((u) => u.record.id))
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-2 rounded-xl bg-brand-50 p-3">
+      <div className="flex flex-wrap items-end gap-2 rounded-2xl bg-brand-50 p-4">
         <Field label="休んだ日">
           <input type="date" className={`${inputCls} !w-auto`} value={date} onChange={(e) => setDate(e.target.value)} />
         </Field>
@@ -457,14 +457,14 @@ function Leaves({ emp }: { emp: Employee }) {
       {list.length === 0 ? (
         <p className="py-6 text-center text-slate-500">まだ記録がありません。</p>
       ) : (
-        <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
+        <ul className="divide-y divide-line rounded-2xl border border-line">
           {list.map((l) => (
             <li key={l.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
               <span className="tabular">
                 {fmt(l.date, true)}
                 <span className="ml-2 text-slate-600">{leaveLabel(l)}</span>
                 {l.date > asOf && <span className="ml-2 rounded bg-sky-50 px-1.5 text-xs text-sky-800">予定</span>}
-                {shortfall.has(l.id) && <span className="ml-2 rounded bg-amber-100 px-1.5 text-xs text-amber-900">残日数不足</span>}
+                {shortfall.has(l.id) && <span className="ml-2 rounded bg-amber-100 px-1.5 text-xs text-sun-700">残日数不足</span>}
                 {l.note && <span className="ml-2 text-slate-500">{l.note}</span>}
               </span>
               <Button size="sm" variant="ghost" aria-label={`${l.date} の記録を削除`} onClick={() => useStore.getState().removeLeave(l.id)}>
@@ -495,9 +495,9 @@ function Balance({ emp }: { emp: Employee }) {
         <p className="mb-2 text-sm text-slate-600">
           {fmt(asOf)} の時点の残日数: <strong className="text-lg text-brand-800">{f(r.balance)}</strong>
         </p>
-        <div className="overflow-x-auto rounded-xl border border-slate-200">
+        <div className="overflow-x-auto rounded-2xl border border-line">
           <table className="w-full min-w-[36rem] text-sm">
-            <thead className="bg-slate-50 text-left text-xs text-slate-600">
+            <thead className="bg-paper text-left text-xs font-bold text-slate-600">
               <tr>
                 <th className="px-3 py-2">付与日</th>
                 <th className="px-3 py-2">内容</th>
@@ -508,7 +508,7 @@ function Balance({ emp }: { emp: Employee }) {
                 <th className="px-3 py-2">使える期限</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 tabular">
+            <tbody className="divide-y divide-line tabular">
               {r.lots.map((l) => (
                 <tr key={l.key} className={l.expires <= asOf ? 'text-slate-400' : ''}>
                   <td className="px-3 py-2">{fmt(l.grantDate)}</td>
@@ -533,11 +533,11 @@ function Balance({ emp }: { emp: Employee }) {
         <p className="mt-1 text-xs text-slate-500">年休は付与日から2年で時効になります。取得した日は{useStore.getState().settings.consumeOrder === 'newest' ? '新しい' : '古い'}付与分から引いています（設定で変えられます）。</p>
       </div>
 
-      <div className="rounded-xl border border-slate-200 p-3">
-        <label className="flex items-center gap-2 font-semibold text-slate-800">
+      <div className="rounded-2xl border border-line p-3">
+        <label className="flex items-center gap-2 font-bold text-ink">
           <input
             type="checkbox"
-            className="h-4 w-4 accent-brand-600"
+            className="h-4 w-4 accent-brand-500"
             checked={migrate}
             onChange={(e) => {
               setMigrate(e.target.checked)

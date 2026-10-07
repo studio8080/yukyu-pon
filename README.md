@@ -126,11 +126,26 @@ src/lib/backup.ts      自動バックアップ（File System Access API）
 src/lib/license.ts     キーの検証と取り直し / src/lib/plan.ts 人数の上限 / src/config.ts 料金の設定
 src/store.ts           zustand + localStorage、復元ポイント、バックアップの読み書き
 src/components/        画面
-public/                料金・利用規約・プライバシー・特商法・robots・sitemap・CNAME
+src/index.css          デザインのトークン（色・書体・ハンコ）。設計言語は下の「画面のデザイン」
+public/                料金・利用規約・プライバシー・特商法・robots・sitemap・CNAME（静的ページの見た目は public/pages.css）
+public/fonts/          見出し用フォント（M PLUS Rounded 1c ExtraBold を使う文字だけに絞ったもの、OFL）
 functions/             Cloud Functions（Stripe Webhook・キー更新）。テストは functions/test（npm install 不要）
-tools/                 鍵の作成・キーの発行
+tools/                 鍵の作成・キーの発行・フォントの絞り込み（subset-font.py）
 docs/launch-checklist.md  販売開始までの運営者の手順
 ```
+
+### 画面のデザイン（2026-10-07 作り直し。コンセプト「休暇届にハンコをポン」）
+
+- **色**: 緑 `brand-500 #10a56e`（主役）・文字 `ink #0c3b2e`・地 `paper #f3f7f5`・線 `line #e2ebe6`。
+  黄 `sun`（注意・ロゴの「ポン」の効果線）、朱 `shu`（至急・未達成）は**状態を表すときだけ**使う。飾りに使わない。
+- **書体**: 見出し・数字・ロゴは丸ゴシック（`.font-display`、自前で配信する `public/fonts/yukyu-rounded-800.woff2`）。
+  助詞などは `<small>` で小さくする（「有休<small>の</small>残り」）。本文は端末の標準のゴシック。
+- **部品**: ボタンは丸い錠剤形（主ボタンは白丸の矢印付き）、面は角丸20〜28px、小見出しは四角マーカー（`.sq-label`）。
+  年5日を達成した人には緑の丸いハンコ（`<Stamp>`）を押す。統計の数字は大きく、単位は小さく。
+- **外部に出さない**: フォントも画像も同じオリジンから。Google Fonts などを読み込まない（CSP の `font-src 'self'`）。
+- **文字を足したら** `python tools/subset-font.py <MPLUSRounded1c-ExtraBold.ttf>` でフォントを作り直す
+  （無い字は本文の書体で出るので壊れはしないが、見た目が混ざる）。元の TTF は google/fonts の `ofl/mplusrounded1c`。
+- ロゴ・アイコン・OGP 画像（`public/logo*.png`・`icon-*.png`・`favicon-*.png`・`og.png`）は同じ書体で作った画像。
 
 ## 6. 動かす
 
@@ -157,5 +172,6 @@ $N node_modules/vite/bin/vite.js build          # dist/（launch.json の yukyu-
 - [x] DNS → HTTPS → Search Console・Bing 登録・sitemap 送信（2026-10-07）
 - [ ] 販売開始（`docs/launch-checklist.md` の3〜7）
 - [ ] 会社サイト（kokokikaku-web）の制作実績・llms.txt に載せる
-- [x] OGP 画像・ロゴ（Dela Gothic One で作った画像。Webフォントは読み込まない）・アイコン・構造化データ・llms.txt・404（2026-10-07）
+- [x] OGP 画像・ロゴ・アイコン・構造化データ・llms.txt・404（2026-10-07）
+- [x] 画面のデザインを作り直し（「休暇届にハンコをポン」。5章「画面のデザイン」、2026-10-07）
 - [ ] 要望次第: 按分、分割付与、従業員本人がスマホで残日数を見る（共有はデータを外に出すので要設計）

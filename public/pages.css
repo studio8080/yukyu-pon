@@ -1,40 +1,77 @@
-:root { --brand: #15805f; --ink: #1d2a26; --muted: #5b6b66; --line: #e3e8e5; --paper: #f7f6f1; }
+/* 料金・規約などの静的ページ。アプリ本体（src/index.css）と同じ設計言語「休暇届にハンコをポン」に合わせる */
+@font-face {
+  font-family: "YukyuRounded";
+  src: url("/fonts/yukyu-rounded-800.woff2") format("woff2");
+  font-weight: 800;
+  font-display: swap;
+}
+:root {
+  --brand: #10a56e; --brand-600: #0b8f60; --brand-700: #0a7350; --brand-50: #effaf5; --brand-100: #d9f3e7; --brand-200: #b2e6cf;
+  --sun-100: #fff4d1; --sun-700: #8a5d00;
+  --ink: #0c3b2e; --muted: #50625b; --line: #e2ebe6; --paper: #f3f7f5;
+  --display: "YukyuRounded", "Hiragino Maru Gothic ProN", "Hiragino Sans", "Yu Gothic UI", Meiryo, sans-serif;
+}
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--paper); color: var(--ink); font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", Meiryo, system-ui, sans-serif; line-height: 1.8; overflow-x: hidden; }
-header.site, main, footer.site { max-width: 760px; margin: 0 auto; padding: 0 16px; }
-header.site { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; padding-bottom: 10px; }
+body { margin: 0; background: var(--paper); color: #334155; font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", Meiryo, system-ui, sans-serif; line-height: 1.8; overflow-x: hidden; }
+header.site, main, footer.site { max-width: 820px; margin: 0 auto; }
+header.site { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; }
 header.site .brand img { display: block; height: 34px; width: auto; }
 header.site nav { display: flex; gap: 6px; flex-wrap: wrap; }
-header.site nav a { font-size: 14px; font-weight: 700; color: var(--brand); text-decoration: none; padding: 6px 12px; border-radius: 999px; border: 1px solid #b0e4d1; background: #fff; }
+header.site nav a { font-size: 14px; font-weight: 700; color: var(--ink); text-decoration: none; padding: 8px 16px; border-radius: 999px; background: #fff; border: 1px solid var(--line); }
 header.site nav a:first-child { background: var(--brand); color: #fff; border-color: var(--brand); }
-main { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 24px 20px; margin-top: 8px; }
-h1 { font-size: 24px; margin: 0 0 4px; }
-h2 { font-size: 17px; margin: 28px 0 6px; border-left: 4px solid var(--brand); padding-left: 8px; }
+header.site nav a:hover { border-color: var(--brand-200); }
+header.site nav a:first-child:hover { background: var(--brand-600); }
+main { background: #fff; border: 1px solid var(--line); border-radius: 24px; padding: 28px 20px 32px; margin: 8px 16px 0; }
+@media (min-width: 852px) { main { margin: 8px auto 0; padding: 40px 48px 48px; } }
+h1, h2, h3 { color: var(--ink); font-feature-settings: "palt"; text-wrap: balance; word-break: auto-phrase; }
+h1 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height: 1.35; margin: 0 0 8px; }
+h2 { font-size: 18px; line-height: 1.5; margin: 36px 0 8px; display: flex; align-items: center; gap: 10px; }
+h2::before { content: ""; flex: none; width: 10px; height: 10px; border-radius: 3px; background: var(--brand); }
 p, li { font-size: 15px; }
 ol, ul { padding-left: 22px; }
+strong { color: var(--ink); }
 .meta { color: var(--muted); font-size: 13px; }
-table { border-collapse: collapse; width: 100%; font-size: 14px; }
-th, td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
-th { background: #f3f6f4; width: 30%; }
-a { color: var(--brand); }
-footer.site { color: var(--muted); font-size: 13px; padding-top: 24px; padding-bottom: 32px; }
-footer.site .cols { display: grid; gap: 16px; grid-template-columns: 1.2fr 1fr; border-top: 1px solid var(--line); padding-top: 20px; }
-footer.site .cols img { height: 26px; width: auto; }
-footer.site ul { list-style: none; padding: 0; margin: 0; }
-footer.site li { margin: 2px 0; }
-footer.site .copy { margin-top: 16px; }
+table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 14px; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+th, td { border-bottom: 1px solid var(--line); padding: 10px 12px; text-align: left; vertical-align: top; }
+tr:last-child th, tr:last-child td { border-bottom: 0; }
+th { background: var(--paper); width: 30%; color: var(--ink); font-weight: 700; }
+@media (max-width: 560px) { th, td { display: block; width: auto; } th { border-bottom: 0; padding-bottom: 2px; } }
+a { color: var(--brand-700); text-underline-offset: 3px; }
+a:hover { color: var(--brand-600); }
+
+/* 足元: アプリと同じ暗い角丸パネル */
+footer.site { padding: 32px 16px 40px; font-size: 13px; }
+footer.site > .cols, footer.site > .copy { background: var(--ink); color: rgba(255,255,255,.78); }
+footer.site .cols { display: grid; gap: 20px; grid-template-columns: 1.3fr 1fr; padding: 28px 28px 8px; border-radius: 28px 28px 0 0; }
+footer.site .cols img { height: 30px; width: auto; display: block; margin-bottom: 10px; }
+footer.site .cols p { font-size: 13px; margin: 0; }
+footer.site ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
+footer.site li { font-size: 13px; }
+footer.site a { color: #fff; text-decoration: none; }
+footer.site a:hover { text-decoration: underline; color: #fff; }
+footer.site .copy { margin: 0; padding: 12px 28px 24px; border-radius: 0 0 28px 28px; color: rgba(255,255,255,.6); }
 @media (max-width: 560px) { footer.site .cols { grid-template-columns: 1fr; } }
-.notfound { text-align: center; padding: 40px 20px; }
-.notfound .big { font-size: 72px; font-weight: 900; color: var(--brand); margin: 0; line-height: 1; }
-.notfound .btn { display: inline-block; padding: 10px 24px; }
-.plans { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin: 16px 0; }
-.plan { border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
-.plan.reco { border: 2px solid var(--brand); }
-.plan h3 { margin: 0 0 4px; font-size: 18px; }
-.price { font-size: 26px; font-weight: 800; color: var(--brand); margin: 4px 0 0; }
+
+/* 404: ハンコ */
+.notfound { text-align: center; padding: 48px 20px; }
+.notfound .big { margin: 0 0 16px; }
+.notfound .big span { display: inline-grid; place-items: center; width: 120px; height: 120px; border-radius: 50%; border: 5px solid var(--brand); color: var(--brand); font-family: var(--display); font-weight: 800; font-size: 40px; line-height: 1; transform: rotate(-10deg); }
+.notfound .btn { display: inline-block; padding: 12px 28px; }
+
+/* 料金 */
+.plans { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin: 20px 0; }
+.plan { border: 1px solid var(--line); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; }
+.plan.reco { border: 2px solid var(--brand); background: var(--brand-50); position: relative; }
+.plan.reco::after { content: "おすすめ"; position: absolute; top: -12px; right: 16px; background: var(--brand); color: #fff; font-size: 12px; font-weight: 700; padding: 2px 12px; border-radius: 999px; }
+.plan h3 { margin: 0 0 2px; font-family: var(--display); font-weight: 800; font-size: 20px; }
+.price { font-family: var(--display); font-weight: 800; font-size: 34px; line-height: 1.2; color: var(--ink); margin: 8px 0 0; font-variant-numeric: tabular-nums; }
+.price .sub { font-family: inherit; font-size: 14px; }
 .sub { color: var(--muted); font-size: 13px; margin: 0; }
-.btn { display: block; text-align: center; margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: var(--brand); color: #fff; text-decoration: none; font-weight: 700; font-size: 14px; }
-.btn.off { background: #c9d3cf; color: #45524d; pointer-events: none; }
-.notice { background: #eef8f4; border: 1px solid #b0e4d1; border-radius: 12px; padding: 10px 14px; font-size: 14px; }
+.btn { display: block; text-align: center; margin-top: 10px; padding: 10px 14px; min-height: 44px; border-radius: 999px; background: var(--brand); color: #fff; text-decoration: none; font-weight: 700; font-size: 14px; }
+.btn:hover { background: var(--brand-600); color: #fff; }
+.plan .sub:last-of-type { margin-bottom: 16px; }
+.plan .btn:first-of-type { margin-top: auto; }
+.btn.off { background: var(--paper); color: var(--muted); border: 1px dashed #c3d1ca; pointer-events: none; }
+.notice { background: var(--sun-100); color: var(--sun-700); border-radius: 16px; padding: 12px 16px; font-size: 14px; }
 
 .btn.optout { display: inline-block; border: 0; cursor: pointer; font: inherit; font-weight: 700; }
