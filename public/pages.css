@@ -36,3 +36,5 @@ footer.site .copy { margin-top: 16px; }
 .btn { display: block; text-align: center; margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: var(--brand); color: #fff; text-decoration: none; font-weight: 700; font-size: 14px; }
 .btn.off { background: #c9d3cf; color: #45524d; pointer-events: none; }
 .notice { background: #eef8f4; border: 1px solid #b0e4d1; border-radius: 12px; padding: 10px 14px; font-size: 14px; }
+
+.btn.optout { display: inline-block; border: 0; cursor: pointer; font: inherit; font-weight: 700; }

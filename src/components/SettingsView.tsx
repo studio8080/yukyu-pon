@@ -1,6 +1,7 @@
-import { Crown, Download, FolderSync, History, ShieldCheck, Trash2, Upload } from 'lucide-react'
+import { Crown, Download, FolderSync, History, Lock, ShieldCheck, Trash2, Upload } from 'lucide-react'
 import { useState } from 'react'
 import { PLANS, planName, PRO_ENFORCED } from '../config'
+import { decryptBackup, encryptBackup, isEncryptedBackup, MIN_PASSWORD } from '../lib/crypto'
 import { autosaveSupported, chooseAutosaveFile, readAutosaveFile, resumeAutosave, stopAutosave, useAutosave } from '../lib/backup'
 import { fmt, isISODate } from '../lib/dates'
 import { renewLicense, usePlan } from '../lib/plan'
@@ -212,6 +213,33 @@ function BackupCard() {
   const auto = useAutosave()
   const [msg, setMsg] = useState<{ tone: 'ok' | 'warn'; text: string } | null>(null)
   const [snaps, setSnaps] = useState(listSnapshots)
+  const [encrypt, setEncrypt] = useState(false)
+  const [pw, setPw] = useState('')
+  const [pw2, setPw2] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [pending, setPending] = useState<string | null>(null) // 暗号化されたファイルの中身（パスワード待ち）
+  const [openPw, setOpenPw] = useState('')
+  const pwOk = !encrypt || (pw.length >= MIN_PASSWORD && pw === pw2)
+  const saveFile = async () => {
+    if (!encrypt) {
+      backupNow()
+      return
+    }
+    setBusy(true)
+    try {
+      const st = useStore.getState()
+      const enc = await encryptBackup(makeBackup(currentData()), pw)
+      download(`有休ポン_バックアップ_暗号化_${st.asOf}.json`, enc, 'application/json')
+      st.markBackedUp()
+      setPw('')
+      setPw2('')
+      setMsg({ tone: 'ok', text: '暗号化したバックアップを保存しました。パスワードは別の場所に控えてください（忘れると戻せません）。' })
+    } catch (err) {
+      setMsg({ tone: 'warn', text: (err as Error).message })
+    } finally {
+      setBusy(false)
+    }
+  }
   const restoreFrom = async (load: () => Promise<ReturnType<typeof parseBackup> | null>) => {
     try {
       const d = await load()
@@ -273,6 +301,7 @@ function BackupCard() {
             <div className="space-y-2 text-sm">
               <p className="text-slate-600">
                 パソコンの中のファイル（例: 共有していない「ドキュメント」の中）を1つ選ぶと、変更のたびにそこへ自動で上書き保存します。ブラウザのデータが消えても、そのファイルから戻せます。
+                自動バックアップのファイルは暗号化しないので、共有フォルダやクラウドの同期フォルダには置かないでください。
               </p>
               <Button variant="primary" disabled={!autosaveSupported()} onClick={chooseAutosaveFile}>
                 <FolderSync size={16} /> 保存先のファイルを選ぶ
@@ -286,9 +315,25 @@ function BackupCard() {
             <Download size={18} /> 2. ファイルに保存・ファイルから戻す
           </h3>
           <p className="mb-2 text-sm text-slate-600">別のパソコンに移すときや、月に一度の控えに。前回の保存: {lastBackupAt ? new Date(lastBackupAt).toLocaleString('ja-JP') : 'まだありません'}</p>
+          <label className="mb-2 flex items-center gap-2 text-sm">
+            <input type="checkbox" className="h-4 w-4 accent-brand-600" checked={encrypt} onChange={(e) => setEncrypt(e.target.checked)} />
+            <Lock size={14} /> パスワードで暗号化する（メールで送る・共有フォルダに置くときにおすすめ）
+          </label>
+          {encrypt && (
+            <div className="mb-3 space-y-2 rounded-lg bg-slate-50 p-3">
+              <div className="flex flex-wrap gap-2">
+                <input type="password" autoComplete="new-password" className={`${inputCls} !w-56`} placeholder={`パスワード（${MIN_PASSWORD}文字以上）`} value={pw} onChange={(e) => setPw(e.target.value)} aria-label="暗号化のパスワード" />
+                <input type="password" autoComplete="new-password" className={`${inputCls} !w-56`} placeholder="もう一度" value={pw2} onChange={(e) => setPw2(e.target.value)} aria-label="暗号化のパスワード（確認）" />
+              </div>
+              {pw2 && pw !== pw2 && <p className="text-xs text-red-700">2つのパスワードが一致しません。</p>}
+              <p className="text-xs text-amber-800">
+                パスワードはどこにも保存しません。<strong>忘れると、運営者を含め誰も戻せません。</strong>ファイルとは別の場所（パスワード管理アプリなど）に控えてください。
+              </p>
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
-            <Button variant="primary" onClick={backupNow}>
-              <Download size={16} /> ファイルに保存
+            <Button variant="primary" onClick={saveFile} disabled={!pwOk || busy}>
+              <Download size={16} /> {busy ? '暗号化しています…' : encrypt ? '暗号化して保存' : 'ファイルに保存'}
             </Button>
             <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-4 py-2 font-medium text-brand-800 hover:bg-brand-50">
               <Upload size={16} /> ファイルから戻す
@@ -296,15 +341,52 @@ function BackupCard() {
                 type="file"
                 accept=".json,application/json"
                 className="sr-only"
-                onChange={(e) => {
+                onChange={async (e) => {
                   const f = e.target.files?.[0]
                   e.target.value = ''
-                  if (f) restoreFrom(async () => parseBackup(await f.text()))
+                  if (!f) return
+                  const text = await f.text()
+                  if (isEncryptedBackup(text)) {
+                    setOpenPw('')
+                    setPending(text)
+                  } else restoreFrom(async () => parseBackup(text))
                 }}
               />
             </label>
           </div>
         </section>
+
+        <Modal open={pending != null} onClose={() => setPending(null)} title="暗号化されたバックアップ">
+          <form
+            className="space-y-3 text-sm"
+            onSubmit={async (e) => {
+              e.preventDefault()
+              const text = pending
+              if (!text) return
+              setBusy(true)
+              try {
+                const plain = await decryptBackup(text, openPw)
+                setPending(null)
+                setOpenPw('')
+                await restoreFrom(async () => parseBackup(plain))
+              } catch (err) {
+                setMsg({ tone: 'warn', text: (err as Error).message })
+              } finally {
+                setBusy(false)
+              }
+            }}
+          >
+            <p>保存したときのパスワードを入れてください。</p>
+            <input type="password" autoComplete="current-password" className={inputCls} value={openPw} onChange={(e) => setOpenPw(e.target.value)} aria-label="バックアップのパスワード" autoFocus />
+            {msg?.tone === 'warn' && pending && <p className="text-red-700">{msg.text}</p>}
+            <div className="flex gap-2">
+              <Button variant="primary" type="submit" disabled={!openPw || busy}>
+                {busy ? '確かめています…' : '戻す'}
+              </Button>
+              <Button onClick={() => setPending(null)}>やめる</Button>
+            </div>
+          </form>
+        </Modal>
 
         <section className="rounded-xl border border-slate-200 p-3">
           <h3 className="mb-1 flex items-center gap-2 font-semibold text-slate-800">
