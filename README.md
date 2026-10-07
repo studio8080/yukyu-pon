@@ -147,8 +147,8 @@ $N node_modules/vite/bin/vite.js build          # dist/（launch.json の yukyu-
 
 ## 8. 今後
 
-- [ ] DNS（上の7章）→ HTTPS → Search Console 登録・sitemap 送信
+- [x] DNS → HTTPS → Search Console・Bing 登録・sitemap 送信（2026-10-07）
 - [ ] 販売開始（`docs/launch-checklist.md` の3〜7）
 - [ ] 会社サイト（kokokikaku-web）の制作実績・llms.txt に載せる
-- [ ] OGP 画像
+- [x] OGP 画像・ロゴ（Dela Gothic One で作った画像。Webフォントは読み込まない）・アイコン・構造化データ・llms.txt・404（2026-10-07）
 - [ ] 要望次第: 按分、分割付与、従業員本人がスマホで残日数を見る（共有はデータを外に出すので要設計）

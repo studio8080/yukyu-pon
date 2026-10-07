@@ -19,7 +19,15 @@ Stripe（支払い成功）──Webhook──▶ yukyuponStripeWebhook（misefi
 
 ---
 
-## 1. DNS（サイトを見えるようにする）— 未
+## 1. DNS（サイトを見えるようにする）— **完了（2026-10-07）**
+
+Claude in Chrome で Squarespace に `CNAME yukyu → studio8080.github.io` を追加（運営者が mikan@ で再認証。既存14件は変更なしを確認）。
+GitHub Pages の証明書を発行させ（独自ドメインを保存し直すと発行が始まった）、Enforce HTTPS をオン。http は https に301。
+Search Console（studio@、URL プレフィックス、HTML ファイルで確認、sitemap 送信、トップのインデックス登録をリクエスト）と
+Bing Webmaster Tools（手動追加、msvalidate.01 のメタタグで確認、sitemap 送信）も登録済み。
+
+<details><summary>手順（記録）</summary>
+
 
 Squarespace（`kokokikaku.com`、ログインは `mikan@kokokikaku.com`）でレコードを1件追加する。**種別は手で選ぶ。**
 
@@ -29,6 +37,8 @@ Squarespace（`kokokikaku.com`、ログインは `mikan@kokokikaku.com`）でレ
 
 既存のレコード（@ の A、MX、www、menufits / misefits / pitch / zenginpon、TXT）には触らない。
 反映後: GitHub のリポジトリ設定 → Pages →「Enforce HTTPS」をオン。確認は `nslookup yukyu.kokokikaku.com`。
+
+</details>
 
 ## 2. 秘密鍵のバックアップ — 未
 
