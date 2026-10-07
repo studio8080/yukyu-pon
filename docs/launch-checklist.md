@@ -1,6 +1,8 @@
 # 有休ポン 販売開始チェックリスト
 
 作成: 2026-10-06。**運営者の操作が必要なもの**を順番に並べた。コードで済むものは実装済み。
+
+> **2026-10-07 方針: 有料版はコンテンツが完成してからリリースする。** それまで支払いリンク・Webhook・デプロイは作らない（3-1 の商品だけ作成済み。商品だけでは購入できない）。
 全銀ポンの `docs/launch-checklist.md` と同じ構成（Stripe サブスク → Webhook → Cloud Functions がキーを発行・メール → ブラウザが定期的に取り直し、解約で 410）。
 
 ```
@@ -38,7 +40,17 @@ Squarespace（`kokokikaku.com`、ログインは `mikan@kokokikaku.com`）でレ
 > Stripe アカウントは MiseFits・MenuFits・全銀ポンと共用。**既存の商品・リンク・Webhook・制限付きキーの権限には触らない。**
 > この作業は Claude in Chrome で代行できる（作るものを1つずつ確認してから進める）。
 
-### 3-1. 商品と価格
+### 3-1. 商品と価格 — **完了（2026-10-07、Claude in Chrome で作成）**
+
+| 商品 | 商品ID | 価格 |
+|---|---|---|
+| 有休ポン Pro | `prod_VOaJ6ZLE0uy9LG` | ¥480/月・¥4,800/年（継続・JPY・税込） |
+| 有休ポン ビジネス | `prod_VOaMMPiqQQOP9R` | ¥980/月・¥9,800/年（継続・JPY・税込） |
+
+税コードはどちらも txcd_10103001。`functions/plans.js` に商品IDを入れ済み。
+
+<details><summary>作成の手順（記録）</summary>
+
 
 商品 → 商品を追加（どちらも **税コード「サービスとしてのソフトウェア (SaaS): 業務使用」**、価格は**継続・JPY・税込**）
 
@@ -48,6 +60,8 @@ Squarespace（`kokokikaku.com`、ログインは `mikan@kokokikaku.com`）でレ
 | 有休ポン ビジネス | 有給休暇の管理ツール 有休ポンの有料プラン（人数無制限） | ¥980 / 月、¥9,800 / 年 |
 
 作ったら、2つの商品ID（`prod_…`）を `functions/plans.js` の `productId` に入れる。
+
+</details>
 
 ### 3-2. 支払いリンクを4本
 
