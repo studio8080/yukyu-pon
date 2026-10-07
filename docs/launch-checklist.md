@@ -92,6 +92,9 @@ Squarespace（`kokokikaku.com`、ログインは `mikan@kokokikaku.com`）でレ
 ## 4. シークレットとデプロイ — 未
 
 Firebase プロジェクト `misefits` の Secret Manager。共用の4つ（`STRIPE_SECRET_KEY` `SMTP_USER` `MAIL_FROM` `SMTP_PASS`）は既にある。新しく2つ足す。
+
+- `YP_LICENSE_PRIVATE_KEY` — **登録済み（2026-10-07、バージョン1）**。手元の PEM・アプリの公開鍵（`src/lib/license.ts`）と一致することを確認済み。
+- `YP_STRIPE_WEBHOOK_SECRET` — 未（リリース時）
 リポジトリ（`C:\Users\chaha\repos\yukyu-pon`）で実行する。
 
 ```bash
