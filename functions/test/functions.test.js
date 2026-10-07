@@ -110,6 +110,8 @@ const licenseDocs = () => Object.keys(store).filter((k) => k.startsWith('yukyupo
     console.log('ok -', name);
   };
 
+  PLANS.pro.productId = '';
+  PLANS.business.productId = '';
   await t('商品IDが未設定なら何もしない（共用アカウントで全部通さない）', async () => {
     subs.sub_X = mkSub('sub_X', 'prod_ANY');
     const r = await post({ type: 'checkout.session.completed', data: { object: { mode: 'subscription', subscription: 'sub_X', customer_details: { email: 'x@example.com' } } } });
