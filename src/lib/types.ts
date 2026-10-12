@@ -108,6 +108,8 @@ export type Settings = {
   hourlyEnabled: boolean
   /** 付与日の前後に、出勤率の確認を促す */
   attendanceCheck: boolean
+  /** 管理簿の保存年数（労基則24条の7は5年、附則71条で当分の間3年）。利用者が選ぶ */
+  ledgerRetentionYears: 3 | 5
 }
 
 export const FIXED_DAYS: Record<Exclude<LeaveKind, 'hours'>, number> = { full: 1, am: 0.5, pm: 0.5 }

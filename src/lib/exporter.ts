@@ -1,6 +1,6 @@
 // 年次有給休暇管理簿（労基則24条の7: 基準日・日数・時季を労働者ごとに）を作る。
 
-import { addMonthsCivil, fmt, minDate, type ISODate } from './dates'
+import { addMonthsCivil, fmt, fmtDays, minDate, type ISODate } from './dates'
 import { buildReport, contractAt, contractLabel, recordDays, TENURE_LABEL, type Report } from './engine'
 import { leaveLabel, type Employee, type LeaveRecord, type Settings } from './types'
 import { windowLabel } from './view'
@@ -17,21 +17,42 @@ export type LedgerRow = {
   skipped: boolean
   periodEnd: ISODate
   dates: LeaveRecord[]
+  /** 取得日数（時間単位も日に換算して含む） */
   taken: number
+  /** 全日・半休の日数（時間単位を除く） */
+  takenFull: number
+  /** 時間単位の時間数 */
+  takenHours: number
   balanceAtEnd: number
   obligation: string
 }
 
-export type LedgerRange = 'year' | 'three' | 'all'
+/** year = 直近1年、retention = 設定の保存期間に入る分、all = すべて */
+export type LedgerRange = 'year' | 'retention' | 'all'
+
+/**
+ * 保存期間に入る付与か。労基則24条の7 の「期間の満了後」の起点を広めにとり、
+ * その付与分が時効（2年）で消えた日から、設定の年数（5年 または 当分の間の3年）を数える。
+ */
+export function withinRetention(grantDate: ISODate, settings: Settings, asOf: ISODate): boolean {
+  return addMonthsCivil(grantDate, 24 + 12 * settings.ledgerRetentionYears) > asOf
+}
+
+/** 管理簿の「取得日数」。時間単位は日に丸めず「1日＋3時間」と書く */
+export function takenText(r: Pick<LedgerRow, 'takenFull' | 'takenHours'>): string {
+  if (r.takenHours <= 0) return fmtDays(r.takenFull)
+  return r.takenFull > 0 ? `${fmtDays(r.takenFull)}＋${r.takenHours}時間` : `${r.takenHours}時間`
+}
 
 export function ledgerRows(employees: Employee[], leaves: LeaveRecord[], settings: Settings, asOf: ISODate, range: LedgerRange, includeRetired: boolean): LedgerRow[] {
-  const from = range === 'year' ? addMonthsCivil(asOf, -12) : range === 'three' ? addMonthsCivil(asOf, -36) : '0000-01-01'
+  const from = range === 'year' ? addMonthsCivil(asOf, -12) : '0000-01-01'
   const out: LedgerRow[] = []
   for (const e of employees) {
     const r = buildReport(e, leaves, settings, asOf)
     if (!includeRetired && !r.active) continue
     for (const p of r.periods) {
       if (p.periodEnd < from) continue
+      if (range === 'retention' && !withinRetention(p.grant.date, settings, asOf)) continue
       const end = minDate(p.periodEnd, asOf)
       const atEnd: Report = end === asOf ? r : buildReport(e, leaves, settings, end)
       const w = r.windows.find((x) => x.grantDate === p.grant.date) ?? null
@@ -48,6 +69,8 @@ export function ledgerRows(employees: Employee[], leaves: LeaveRecord[], setting
         periodEnd: p.periodEnd,
         dates: p.dates,
         taken: p.takenDays,
+        takenFull: Math.round(p.dates.filter((d) => d.kind !== 'hours').reduce((s, d) => s + recordDays(e, d), 0) * 10) / 10,
+        takenHours: p.takenHours,
         balanceAtEnd: atEnd.balance,
         obligation: w ? `${windowLabel(w)}（期限 ${fmt(w.deadline)}）` : '対象外',
       })
@@ -82,7 +105,7 @@ export function buildWorkbook(XLSX: XLSXModule, rows: LedgerRow[], employees: Em
     r.statutory,
     r.skipped ? '0（出勤率8割未満）' : r.days,
     fmt(r.periodEnd),
-    r.taken,
+    r.takenHours > 0 ? takenText(r) : r.taken,
     datesText(r.dates),
     r.periodEnd > asOf ? `${r.balanceAtEnd}（${fmt(asOf)}現在）` : r.balanceAtEnd,
     r.obligation,

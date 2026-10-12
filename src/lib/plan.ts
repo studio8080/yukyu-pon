@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FREE_LIMIT, LICENSE_API, PRO_ENFORCED } from '../config'
+import { FREE_LIMIT, LICENSE_API, PLANS, PRO_ENFORCED, planName } from '../config'
 import { useStore } from '../store'
 import { today } from './dates'
 import { renewIfNeeded, verifyLicense, type LicenseResult } from './license'
@@ -23,6 +23,14 @@ export async function renewLicense(force = false): Promise<string> {
   if (r.reason === 'not-due') return 'まだ確認の時期ではありません。'
   if (r.reason.startsWith('http-404')) return 'このキーは自動更新の対象ではありません（手動で発行したキー）。'
   return `確認できませんでした（${r.reason}）。`
+}
+
+/** 人数の上限に達したときの案内（無料と Pro で次の一手が違う） */
+export function limitMessage(plan: Pick<Plan, 'pro' | 'limit'>): string {
+  const pro = PLANS[1]
+  if (!plan.pro)
+    return `無料で管理できる在籍中の人数（${FREE_LIMIT}人）に達しました。設定の「料金プラン」で Pro（${pro.limit}人まで）かビジネス（人数無制限）のキーを入れると追加できます。退職した人は数えません。`
+  return `${planName(plan.limit)}で管理できる在籍中の人数（${plan.limit}人）に達しました。キーのメールにある契約の管理ページからビジネス（人数無制限）に変えると追加できます。退職した人は数えません。`
 }
 
 export type Plan = {

@@ -1,7 +1,7 @@
 import { FileSpreadsheet, Printer } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { fmt, fmtDays } from '../lib/dates'
-import { datesText, exportExcel, ledgerRows, type LedgerRange, type LedgerRow } from '../lib/exporter'
+import { datesText, exportExcel, ledgerRows, takenText, type LedgerRange, type LedgerRow } from '../lib/exporter'
 import { useStore } from '../store'
 import { NoticeSlips } from './NoticeSlips'
 import { Button, Card, Notice, PageHead } from './ui'
@@ -41,7 +41,7 @@ function Ledger() {
   const leaves = useStore((s) => s.leaves)
   const settings = useStore((s) => s.settings)
   const asOf = useStore((s) => s.asOf)
-  const [range, setRange] = useState<LedgerRange>('three')
+  const [range, setRange] = useState<LedgerRange>('retention')
   const [retired, setRetired] = useState(true)
   const [busy, setBusy] = useState(false)
   const rows = useMemo(() => ledgerRows(employees, leaves, settings, asOf, range, retired), [employees, leaves, settings, asOf, range, retired])
@@ -61,7 +61,9 @@ function Ledger() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="font-display text-lg text-ink">年次有給休暇管理簿</h2>
-            <p className="text-sm text-slate-600">労働者ごとに「基準日・日数・時季（取得した日）」をまとめた帳簿です。期間の満了後5年間（当分の間は3年間）保存します。</p>
+            <p className="text-sm text-slate-600">
+              労働者ごとに「基準日・日数・時季（取得した日）」をまとめた帳簿です。保存期間は法律では5年（当分の間は3年）で、いまの設定は<strong>{settings.ledgerRetentionYears}年</strong>です（「設定」で変えられます）。
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -88,7 +90,7 @@ function Ledger() {
             載せる期間
             <select className="rounded-lg border border-slate-300 px-2 py-1" value={range} onChange={(e) => setRange(e.target.value as LedgerRange)}>
               <option value="year">直近1年</option>
-              <option value="three">直近3年（保存の目安）</option>
+              <option value="retention">{`保存期間（${settings.ledgerRetentionYears}年）に入る分`}</option>
               <option value="all">すべて</option>
             </select>
           </label>
@@ -137,7 +139,7 @@ function Ledger() {
                         <td className="whitespace-nowrap px-3 py-1.5 text-right">{r.skipped ? '0（8割未満）' : fmtDays(r.days)}</td>
                         <td className="whitespace-nowrap px-3 py-1.5">〜{fmt(r.periodEnd)}</td>
                         <td className="px-3 py-1.5">{datesText(r.dates) || '—'}</td>
-                        <td className="whitespace-nowrap px-3 py-1.5 text-right">{fmtDays(r.taken)}</td>
+                        <td className="whitespace-nowrap px-3 py-1.5 text-right">{takenText(r)}</td>
                         <td className="whitespace-nowrap px-3 py-1.5 text-right">
                           {fmtDays(r.balanceAtEnd)}
                           {r.periodEnd > asOf && <span className="block text-[10px] text-slate-500">現在</span>}

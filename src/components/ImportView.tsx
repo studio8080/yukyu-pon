@@ -13,8 +13,7 @@ import {
 } from '../lib/importer'
 import { planEmployees, planLeaves } from '../lib/importPlan'
 import { isISODate } from '../lib/dates'
-import { usePlan } from '../lib/plan'
-import { FREE_LIMIT } from '../config'
+import { limitMessage, usePlan } from '../lib/plan'
 import { useStore } from '../store'
 import { Badge, Button, Card, download, inputCls, Notice, PageHead } from './ui'
 
@@ -264,7 +263,7 @@ export function ImportView({ onDone }: { onDone: () => void }) {
             {overLimit && (
               <div className="px-4 pt-3">
                 <Notice tone="warn">
-                  無料で管理できる在籍中の人数は{FREE_LIMIT}人までです（新しく{newCount}人、あと{plan0.room}人まで追加できます）。設定の「料金プラン」で Pro のキーを入れるか、行を減らしてください。
+                  {limitMessage(plan0)}（新しく{newCount}人、あと{plan0.room}人まで追加できます）。行を減らして取り込むこともできます。
                 </Notice>
               </div>
             )}

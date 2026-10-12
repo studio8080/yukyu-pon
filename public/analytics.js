@@ -6,8 +6,8 @@
  */
 (function () {
   'use strict';
-  // 有効にするか（2026-10-07 時点ではオフ。静的ページも同じ保存領域のため、運営者の判断待ち。README 3章）
-  var ENABLED = false;
+  // 有効にするか（2026-10-12 運営者の決定でオン。docs/analytics-plan.md）
+  var ENABLED = true;
   var id = 'G-J91XL10BCE';
   var optKey = 'yukyuponAnalyticsOptOut';
   var button = document.getElementById('analytics-optout');

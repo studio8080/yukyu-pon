@@ -12,6 +12,7 @@ export const defaultSettings: Settings = {
   halfDayEnabled: true,
   hourlyEnabled: false,
   attendanceCheck: true,
+  ledgerRetentionYears: 5,
 }
 
 export function newId(): string {

@@ -376,7 +376,7 @@ function ExtraGrants({ emp }: { emp: Employee }) {
   return (
     <div className="rounded-2xl border border-line p-3">
       <h3 className="mb-1 font-bold text-ink">会社独自の上乗せ</h3>
-      <p className="mb-3 text-xs text-slate-500">創業記念の+1日など、法定とは別に付与した年休。残日数に足します（時効は2年として計算）。</p>
+      <p className="mb-3 text-xs text-slate-500">会社が法定より多く付与した年休（年休と同じ扱いのもの）。残日数に足し、取得すると年5日にも数えます（時効は2年として計算）。慶弔休暇・夏季休暇などの特別休暇は年5日に数えられないので、ここには入れないでください。</p>
       {emp.extraGrants.length > 0 && (
         <ul className="mb-3 divide-y divide-line text-sm">
           {emp.extraGrants.map((x) => (
@@ -421,6 +421,7 @@ function Leaves({ emp }: { emp: Employee }) {
   const [hours, setHours] = useState(1)
   const settings = useStore((s) => s.settings)
   const [note, setNote] = useState('')
+  const [dupMsg, setDupMsg] = useState('')
   const shortfall = new Set(r.uses.filter((u) => u.shortfall > 0).map((u) => u.record.id))
   return (
     <div className="space-y-4">
@@ -447,12 +448,18 @@ function Leaves({ emp }: { emp: Employee }) {
           variant="primary"
           disabled={!isISODate(date)}
           onClick={() => {
-            useStore.getState().addLeaves([{ employeeId: emp.id, date, kind, ...(kind === 'hours' ? { hours } : {}), note: note || undefined }])
+            const n = useStore.getState().addLeaves([{ employeeId: emp.id, date, kind, ...(kind === 'hours' ? { hours } : {}), note: note || undefined }])
+            setDupMsg(n === 0 ? `${fmt(date)} の同じ区分の記録はもうあります（追加していません）。` : '')
             setNote('')
           }}
         >
           <Plus size={16} /> 追加
         </Button>
+        {dupMsg && (
+          <p className="w-full text-sm text-slate-600" role="status">
+            {dupMsg}
+          </p>
+        )}
       </div>
       {list.length === 0 ? (
         <p className="py-6 text-center text-slate-500">まだ記録がありません。</p>

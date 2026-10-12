@@ -5,7 +5,7 @@ import type { GrantEvent, Report } from '../lib/engine'
 import { contractAt, contractLabel } from '../lib/engine'
 import { makeSample } from '../lib/sample'
 import { useReports, windowDetail, windowLabel } from '../lib/view'
-import { usePlan, type Plan } from '../lib/plan'
+import { limitMessage, usePlan, type Plan } from '../lib/plan'
 import { FREE_LIMIT } from '../config'
 import type { Employee } from '../lib/types'
 import { blankEmployee, useStore } from '../store'
@@ -263,10 +263,10 @@ export function AddButton({ plan, onOpen, size = 'md', className = '' }: { plan:
       size={size}
       variant="primary"
       className={className}
-      title={full ? `無料で管理できるのは${FREE_LIMIT}人までです。Pro にすると人数の上限がなくなります。` : undefined}
+      title={full ? limitMessage(plan) : undefined}
       onClick={() => {
         if (full) {
-          alert(`無料で管理できる在籍中の人数（${FREE_LIMIT}人）に達しました。設定の「Pro」からライセンスキーを入れると追加できます。退職した人は数えません。`)
+          alert(limitMessage(plan))
           return
         }
         onOpen(useStore.getState().addEmployee({ ...blankEmployee(asOf), name: '新しい人' }))

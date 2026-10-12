@@ -9,7 +9,7 @@
    外へ送ってよいのはライセンスID（英数字12桁）だけ。本番の CSP（`vite.config.ts`）の `connect-src` はキー更新先の
    `https://asia-northeast1-misefits.cloudfunctions.net` だけ。**これを消すとキーの更新が黙って失敗し、有料の人が30日で無料に戻る。**
    許可先を足すときは、理由を README に書き、`public/privacy.html` を先に直す。
-   **アプリ本体（`index.html`・`src/`）に解析タグ・外部スクリプトを入れない。** GA4 は静的ページだけの準備がある（`docs/analytics-plan.md`、いまはオフ）。
+   **アプリ本体（`index.html`・`src/`）に解析タグ・外部スクリプトを入れない。** GA4 は静的ページ（`public/*.html`）だけで動いている（`public/analytics.js`、2026-10-12 からオン。`docs/analytics-plan.md`）。送る項目を増やすときは `public/privacy.html` 5章を先に直す。
    同じオリジンのページで動くスクリプトは localStorage（従業員のデータ）を読めることを忘れない。
 2. **計算を確率や推測で決めない。** 付与日数・時効・年5日は条文どおりのルールで書き、迷ったら労働者に不利にならない側に倒す。
    推定したもの（移行残の割り当て、年の無い日付）は画面に「推定」と出す。

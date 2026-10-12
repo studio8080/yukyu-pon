@@ -78,16 +78,27 @@ export function planEmployees(
     if (seen.has(k)) errors.push('同じ人が表の中に2回出てきます')
     seen.add(k)
 
+    const found = find(code, name)
+    if (found.error) errors.push(found.error)
+    // すでにいる人は、表に無い（列が無い・空欄の）契約の項目を今の契約から引き継ぐ。
+    // 「空なら週5日」を当てると、パートの人が週5日に変わってしまう
+    const cur = found.emp ? contractAt(found.emp, asOf) : null
+
     // 契約
     const daysRaw = cell(r, map.days)
     const annualRaw = cell(r, map.annual)
     let days = daysRaw ? parseNumber(daysRaw) : null
-    const annual = annualRaw ? parseNumber(annualRaw) : null
+    let annual = annualRaw ? parseNumber(annualRaw) : null
     if (daysRaw && (days == null || days < 0 || days > 7)) errors.push(`週の勤務日数「${daysRaw}」が読めません`)
+    if (cur && !daysRaw && !annualRaw) {
+      days = cur.daysPerWeek > 0 ? cur.daysPerWeek : null
+      annual = cur.annualDays ?? null
+    }
     if (days == null && annual == null) days = 5
     const over30Raw = cell(r, map.hours)
     let over30 = parseOver30(over30Raw)
     if (over30Raw && over30 == null) errors.push(`週の労働時間「${over30Raw}」が読めません`)
+    if (over30 == null && cur && (days ?? 0) === cur.daysPerWeek && (annual ?? 0) === (cur.annualDays ?? 0)) over30 = cur.over30h
     if (over30 == null) {
       over30 = (days ?? 0) >= 5
       if (map.hours == null && days != null && days < 5) notes.push('労働時間の列が無いため、週30時間未満として計算します')
@@ -95,9 +106,6 @@ export function planEmployees(
     const retireRaw = cell(r, map.retire)
     const retire = retireRaw ? parseLooseDate(retireRaw) : null
     if (retireRaw && !retire) errors.push(`退職日「${retireRaw}」が読めません`)
-
-    const found = find(code, name)
-    if (found.error) errors.push(found.error)
     if (errors.length || !hire) {
       rows.push({ line: i + 1, label: name || code, status: 'error', errors, notes, leaves: [] })
       continue
@@ -111,9 +119,10 @@ export function planEmployees(
     }
     let emp: Employee
     if (found.emp) {
-      const cur = contractAt(found.emp, asOf)
       const changed = !cur || cur.daysPerWeek !== contract.daysPerWeek || cur.over30h !== contract.over30h || (cur.annualDays ?? 0) !== (contract.annualDays ?? 0)
-      const contracts = changed ? [...found.emp.contracts.filter((c) => c.from < asOf), { ...contract, from: found.emp.contracts.length ? asOf : hire }] : found.emp.contracts
+      // 1日の所定労働時間（時間単位の換算）は表に無いので引き継ぐ
+      const next: Contract = cur?.hoursPerDay != null ? { ...contract, hoursPerDay: cur.hoursPerDay } : contract
+      const contracts = changed ? [...found.emp.contracts.filter((c) => c.from < asOf), { ...next, from: found.emp.contracts.length ? asOf : hire }] : found.emp.contracts
       if (changed && found.emp.contracts.length) notes.push(`契約の変更として ${asOf} から反映します`)
       if (found.emp.hireDate !== hire) notes.push(`入社日を ${found.emp.hireDate} → ${hire} に直します`)
       emp = { ...found.emp, name: name || found.emp.name, code: code || found.emp.code, hireDate: hire, retireDate: retire ?? found.emp.retireDate, contracts }

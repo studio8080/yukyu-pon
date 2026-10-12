@@ -3,7 +3,8 @@ import { useState } from 'react'
 import { PLANS, planName, PRO_ENFORCED } from '../config'
 import { decryptBackup, encryptBackup, isEncryptedBackup, MIN_PASSWORD } from '../lib/crypto'
 import { autosaveSupported, chooseAutosaveFile, readAutosaveFile, resumeAutosave, stopAutosave, useAutosave } from '../lib/backup'
-import { fmt, isISODate } from '../lib/dates'
+import { fmt, isISODate, today } from '../lib/dates'
+import { peekPayload } from '../lib/license'
 import { renewLicense, usePlan } from '../lib/plan'
 import type { FirstGrantRule, Settings } from '../lib/types'
 import { currentData, listSnapshots, makeBackup, parseBackup, restoreSnapshot, useStore } from '../store'
@@ -142,6 +143,15 @@ export function SettingsView() {
               </select>
             </div>
           </Field>
+          <Field
+            label="管理簿の保存期間"
+            hint="法律（労基則24条の7）は5年。当分の間は3年でよいとされています（附則71条）。管理簿の「保存期間に入る分」は、その付与分が時効（2年）で消えた日から数えて多めに載せます。"
+          >
+            <select className={inputCls} value={s.ledgerRetentionYears} onChange={(e) => set({ ledgerRetentionYears: Number(e.target.value) as Settings['ledgerRetentionYears'] })}>
+              <option value={5}>5年（法律の本則）</option>
+              <option value={3}>3年（当分の間の経過措置）</option>
+            </select>
+          </Field>
         </div>
       </Card>
 
@@ -159,7 +169,7 @@ export function SettingsView() {
         </div>
         {s.hourlyEnabled && (
           <p className="mt-2 text-xs text-slate-500">
-            「1日＝何時間」は各人の契約の「1日の所定労働時間」で決めます（従業員の「契約」タブ。1時間未満は切り上げ。既定は8時間）。日によって時間が違う人は、1年の平均を入れてください。
+            「1日＝何時間」は各人の契約の「1日の所定労働時間」で決めます（従業員の「契約」タブ。1時間未満は切り上げ（厚生労働省の解説）。既定は8時間）。日によって時間が違う人は、1年の平均を入れてください。
           </p>
         )}
       </Card>
@@ -497,14 +507,27 @@ function ProCard() {
             variant="primary"
             disabled={!input.trim()}
             onClick={() => {
-              useStore.getState().setLicenseKey(input.trim().replace(/\s+/g, ''))
+              const k = input.trim().replace(/\s+/g, '')
+              useStore.getState().setLicenseKey(k)
               useStore.getState().setLicenseNotice('')
               setInput('')
+              // 期限切れのキー（メールで届いた古いもの）なら、その場で取り直す（送るのはライセンスIDだけ）
+              const e = peekPayload(k)?.e
+              if (e && e < today()) renewLicense(true).then(setMsg)
             }}
           >
             有効にする
           </Button>
-          {key && lic && !lic.ok && <p className="w-full text-sm text-shu-700">{lic.reason}</p>}
+          {key && lic && !lic.ok && (
+            <p className="w-full text-sm text-shu-700">
+              {lic.reason}
+              {lic.expired && (
+                <Button size="sm" className="ml-2" onClick={async () => setMsg(await renewLicense(true))}>
+                  更新を確認
+                </Button>
+              )}
+            </p>
+          )}
         </div>
       )}
       {msg && <p className="mt-2 text-sm text-slate-600">{msg}</p>}

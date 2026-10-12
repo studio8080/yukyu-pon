@@ -94,6 +94,10 @@ describe('付与の予定', () => {
       ['2022-10-01', 12, true],
     ])
   })
+  it('2回目以降は6か月経過日から1年ごと（閏年をまたいでも 2/29 にしない。39条2項）', () => {
+    const e = emp({ hireDate: '2025-08-29' })
+    expect(sched(e, S(), '2028-12-31').map((x) => x[0])).toEqual(['2026-03-01', '2027-03-01', '2028-03-01'])
+  })
   it('退職日より後は付与しない', () => {
     const e = emp({ hireDate: '2020-04-01', retireDate: '2022-09-30' })
     expect(sched(e, S(), '2025-12-31').length).toBe(2)
@@ -169,6 +173,17 @@ describe('残高と時効', () => {
     const r = buildReport(e, [leave('2020-09-01')], S(), '2020-12-01')
     expect(r.warnings.some((w) => w.includes('足りません'))).toBe(true)
   })
+  it('半休を使わない設定なのに半休の記録があれば警告', () => {
+    const e = emp({ hireDate: '2024-04-01' })
+    const r = buildReport(e, [leave('2024-11-05', 'am')], S({ halfDayEnabled: false }), '2024-12-01')
+    expect(r.warnings.some((w) => w.includes('半日単位'))).toBe(true)
+    expect(buildReport(e, [leave('2024-11-05', 'am')], S(), '2024-12-01').warnings).toEqual([])
+  })
+  it('警告の日付は 2024/11/05 の形で出す', () => {
+    const e = emp({ hireDate: '2024-04-01' })
+    const r = buildReport(e, [leave('2024-09-05')], S(), '2024-12-01')
+    expect(r.warnings.some((w) => w.startsWith('2024/09/05 の取得の時点で'))).toBe(true)
+  })
   it('同じ日に全日と半休は警告。午前と午後は問題なし', () => {
     const ok = buildReport(e, [leave('2021-01-05', 'am'), leave('2021-01-05', 'pm')], S(), '2021-02-01')
     expect(ok.warnings).toEqual([])
@@ -240,6 +255,22 @@ describe('年5日の取得義務', () => {
   it('期間の途中で退職したら対象外', () => {
     const r = buildReport({ ...e, retireDate: '2025-03-31' }, ls, S(), '2025-09-01')
     expect(r.windows[0].status).toBe('retired')
+  })
+  it('退職日を先に入れても、在籍中は退職日を期限として知らせる（パンフ Q13・14: 履行できないときだけ違反を問わない）', () => {
+    const quitting = { ...e, retireDate: '2025-08-31' }
+    const before = buildReport(quitting, ls, S(), '2025-07-15')
+    expect(before.windows[0].status).toBe('active')
+    expect(before.windows[0].deadline).toBe('2025-08-31')
+    expect(before.level).toBe('yellow')
+    expect(before.focus?.needed).toBe(3)
+    expect(buildReport(quitting, ls, S(), '2025-08-05').level).toBe('red')
+    expect(buildReport(quitting, ls, S(), '2025-09-01').windows[0].status).toBe('retired')
+  })
+  it('残日数が足りない取得は、年休ではないので5日に数えない', () => {
+    const many = Array.from({ length: 12 }, (_, i) => leave(`2024-11-${String(i + 1).padStart(2, '0')}`))
+    const r = buildReport(e, many, S(), '2025-01-10')
+    expect(r.focus?.taken).toBe(10)
+    expect(r.warnings.some((w) => w.includes('足りません'))).toBe(true)
   })
   it('一斉付与で期間が重なったら、それぞれの期間で5日を見る', () => {
     const u = S({ grantRule: 'uniform', uniformMonthDay: '04-01', uniformFirst: 'sixMonths' })

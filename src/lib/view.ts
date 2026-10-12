@@ -38,6 +38,6 @@ export function windowLabel(w: ObligationWindow | null): string {
 export function windowDetail(w: ObligationWindow): string {
   const range = `${fmt(w.grantDate)}〜${fmt(w.deadline)}`
   const planned = w.planned > 0 ? `（予定 ${fmtDays(w.planned)}）` : ''
-  if (w.status === 'active') return `${range}・取得 ${fmtDays(w.taken)}${planned}・期限まで${w.daysLeft}日`
+  if (w.status === 'active') return `${range}・取得 ${fmtDays(w.taken)}${planned}・${w.untilRetire ? '退職日' : '期限'}まで${w.daysLeft}日`
   return `${range}・取得 ${fmtDays(w.taken)}${planned}`
 }
