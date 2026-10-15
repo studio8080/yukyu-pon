@@ -10,7 +10,8 @@ import { FREE_LIMIT } from '../config'
 import type { Employee } from '../lib/types'
 import { blankEmployee, useStore } from '../store'
 import { AttendanceDialog } from './AttendanceDialog'
-import { Badge, Button, Card, PageHead, Stamp } from './ui'
+import { AdSlot } from './AdSlot'
+import { Avatar, Badge, Button, Card, PageHead, Stamp } from './ui'
 
 type Filter = 'all' | 'action' | 'active' | 'retired'
 
@@ -139,6 +140,7 @@ export function Dashboard({ onOpen, onNavigate }: { onOpen: (id: string) => void
           </ul>
         )}
       </Card>
+      <AdSlot slot="home" />
     </div>
   )
 }
@@ -162,9 +164,7 @@ function Row({ r, onOpen }: { r: Report; onOpen: (id: string) => void }) {
         onClick={() => onOpen(e.id)}
         className="grid w-full grid-cols-[auto_1fr] gap-x-3 gap-y-3 px-4 py-4 text-left transition hover:bg-brand-50/60 sm:px-6 md:grid-cols-[auto_minmax(10rem,1.3fr)_6.5rem_minmax(8rem,1fr)_minmax(15rem,2fr)] md:items-center md:gap-x-5"
       >
-        <span aria-hidden className={`font-display grid h-11 w-11 place-items-center rounded-full text-base ${r.active ? 'bg-brand-50 text-brand-600' : 'bg-slate-100 text-slate-400'}`}>
-          {(e.name || '？').trim().charAt(0)}
-        </span>
+        <Avatar name={e.name} photo={e.photo} size={44} muted={!r.active} />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-bold text-ink">
             <span className="truncate text-base">{e.name || '（名前なし）'}</span>
@@ -174,6 +174,11 @@ function Row({ r, onOpen }: { r: Report; onOpen: (id: string) => void }) {
               </span>
             )}
             {!r.active && <Badge level="none">退職</Badge>}
+            {r.active && e.retireDate && (
+              <span className="rounded-full bg-paper px-2 py-0.5 text-[11px] font-bold text-slate-600 ring-1 ring-line" title="退職日までに年5日を取らせる必要があります">
+                退職予定 {fmt(e.retireDate).slice(5)}
+              </span>
+            )}
             {r.active && r.missed.length > 0 && r.focus?.status !== 'missed' && <Badge level="red">過去に未達</Badge>}
           </div>
           <div className="text-xs text-slate-500">

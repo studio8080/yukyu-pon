@@ -4,6 +4,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { today, type ISODate } from './lib/dates'
 import { defaultSettings, newId } from './lib/defaults'
+import { sanitizePhoto } from './lib/photo'
 import type { Employee, LeaveRecord, Settings } from './lib/types'
 
 export const STORAGE_KEY = 'yukyu-pon:v1'
@@ -182,7 +183,9 @@ export function listSnapshots(): Snapshot[] {
 }
 
 export function takeSnapshot(reason: string) {
-  const d = currentData()
+  // 写真は容量が大きいので復元ポイントには入れない（戻すときは今の写真を引き継ぐ）
+  const cur = currentData()
+  const d: Data = { ...cur, employees: cur.employees.map(({ photo: _photo, ...e }) => e) }
   if (d.employees.length === 0 && d.leaves.length === 0) return
   const list = [{ at: now(), reason, employees: d.employees.length, leaves: d.leaves.length, data: d }, ...listSnapshots()]
   // 容量オーバーなら古いものから捨てる
@@ -205,7 +208,9 @@ export function dailySnapshot() {
 
 export function restoreSnapshot(at: string) {
   const s = listSnapshots().find((x) => x.at === at)
-  if (s) useStore.getState().replaceAll(s.data)
+  if (!s) return
+  const photos = new Map(useStore.getState().employees.filter((e) => e.photo).map((e) => [e.id, e.photo]))
+  useStore.getState().replaceAll({ ...s.data, employees: s.data.employees.map((e) => (photos.has(e.id) ? { ...e, photo: photos.get(e.id) } : e)) })
 }
 
 // ---------------------------------------------------------------------------
@@ -235,6 +240,7 @@ export function parseBackup(text: string): Data {
     adjustments: e.adjustments && typeof e.adjustments === 'object' ? (e.adjustments as Employee['adjustments']) : {},
     extraGrants: Array.isArray(e.extraGrants) ? e.extraGrants : [],
     memo: str(e.memo),
+    photo: sanitizePhoto(e.photo),
   }))
   const ids = new Set(employees.map((e) => e.id))
   const leaves: LeaveRecord[] = (j.leaves as Record<string, unknown>[])

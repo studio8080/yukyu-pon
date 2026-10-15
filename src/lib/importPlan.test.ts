@@ -24,6 +24,7 @@ describe('名簿の取り込み（更新）', () => {
     expect(row.status).toBe('update')
     expect(row.employee?.contracts).toEqual(part.contracts)
     expect(row.notes.join()).not.toContain('契約の変更')
+    expect(row.notes.join()).toContain('いまの契約（週4日）のまま')
   })
 
   it('勤務日数の欄が空の行も、いまの契約を変えない', () => {

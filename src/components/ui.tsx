@@ -90,6 +90,18 @@ export function Badge({ level, children }: { level: Level; children: ReactNode }
 }
 
 /** 達成の印（緑のハンコ）。朱は「至急・未達」に取っておく */
+/** 従業員のアイコン。写真があれば写真、無ければ名前の1文字目 */
+export function Avatar({ name, photo, size = 44, muted = false }: { name: string; photo?: string | null; size?: number; muted?: boolean }) {
+  const style = { width: size, height: size }
+  if (photo)
+    return <img src={photo} alt="" aria-hidden width={size} height={size} style={style} className={`shrink-0 rounded-full object-cover ring-1 ring-line ${muted ? 'opacity-50 grayscale' : ''}`} />
+  return (
+    <span aria-hidden style={{ ...style, fontSize: Math.round(size * 0.36) }} className={`font-display grid shrink-0 place-items-center rounded-full ${muted ? 'bg-slate-100 text-slate-400' : 'bg-brand-50 text-brand-600'}`}>
+      {(name || '？').trim().charAt(0)}
+    </span>
+  )
+}
+
 export function Stamp({ children = '達成', size = 44 }: { children?: ReactNode; size?: number }) {
   return (
     <span className="stamp stamp-in text-brand-500" style={{ width: size, height: size, fontSize: size * 0.3 }}>

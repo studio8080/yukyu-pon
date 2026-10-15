@@ -1,14 +1,15 @@
-import { AlertTriangle, Plus, Trash2 } from 'lucide-react'
+import { AlertTriangle, Camera, Plus, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { addDays, fmt, fmtBalance, fmtDays, isISODate, type ISODate } from '../lib/dates'
 import { newId } from '../lib/defaults'
+import { makePhoto } from '../lib/photo'
 import { buildReport, categoryLabel, categoryOf, contractLabel, TENURE_LABEL, type GrantEvent } from '../lib/engine'
 import { leaveLabel, type Contract, type Employee, type LeaveKind } from '../lib/types'
 import { windowDetail, windowLabel } from '../lib/view'
 import { useStore } from '../store'
 import { AttendanceDialog } from './AttendanceDialog'
 import { KindPicker } from './LeaveEntry'
-import { Badge, Button, Field, inputCls, Modal, Notice } from './ui'
+import { Avatar, Badge, Button, Field, inputCls, Modal, Notice } from './ui'
 
 type Tab = 'basic' | 'contract' | 'grants' | 'leaves' | 'balance'
 
@@ -79,8 +80,46 @@ function Warnings({ emp }: { emp: Employee }) {
 function Basic({ emp, onDeleted }: { emp: Employee; onDeleted: () => void }) {
   const update = useStore((s) => s.updateEmployee)
   const set = (p: Partial<Employee>) => update(emp.id, p)
+  const [photoMsg, setPhotoMsg] = useState('')
   return (
     <div className="grid gap-4 sm:grid-cols-2">
+      <div className="flex flex-wrap items-center gap-4 sm:col-span-2">
+        <Avatar name={emp.name} photo={emp.photo} size={72} />
+        <div className="min-w-0 space-y-1.5">
+          <div className="flex flex-wrap gap-2">
+            <label className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full bg-white px-4 py-1.5 text-sm font-bold text-ink ring-1 ring-line hover:bg-brand-50 focus-within:outline-2 focus-within:outline-brand-500">
+              <Camera size={15} aria-hidden /> {emp.photo ? '写真を変える' : '写真を設定'}
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={async (e) => {
+                  const f = e.target.files?.[0]
+                  e.target.value = ''
+                  if (!f) return
+                  try {
+                    set({ photo: await makePhoto(f) })
+                    setPhotoMsg('')
+                  } catch (err) {
+                    setPhotoMsg(err instanceof Error ? err.message : '写真を設定できませんでした。')
+                  }
+                }}
+              />
+            </label>
+            {emp.photo && (
+              <Button size="sm" variant="ghost" onClick={() => set({ photo: null })}>
+                写真を外す
+              </Button>
+            )}
+          </div>
+          <p className="text-xs text-slate-500">一覧のアイコンに表示します（任意）。写真はこのブラウザとバックアップのファイルにだけ保存し、外部には送りません。登録する前に本人の了解を得てください。</p>
+          {photoMsg && (
+            <p className="text-xs text-shu-700" role="alert">
+              {photoMsg}
+            </p>
+          )}
+        </div>
+      </div>
       <Field label="氏名">
         <input className={inputCls} value={emp.name} onChange={(e) => set({ name: e.target.value })} />
       </Field>

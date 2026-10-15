@@ -67,6 +67,8 @@ export type Employee = {
   adjustments: Record<ISODate, GrantAdjustment>
   extraGrants: ExtraGrant[]
   memo: string
+  /** 顔写真（任意）。96px 四方の JPEG の data URL。このブラウザとバックアップにだけ入る（src/lib/photo.ts） */
+  photo?: string | null
 }
 
 /** full = 1日、am/pm = 半日（0.5日）、hours = 時間単位 */

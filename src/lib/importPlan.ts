@@ -2,7 +2,7 @@
 
 import { addMonthsCivil, parseLooseDate, parts, type ISODate } from './dates'
 import { newId } from './defaults'
-import { contractAt, grantSchedule } from './engine'
+import { contractAt, contractLabel, grantSchedule } from './engine'
 import { parseDateList, parseKind, parseNumber, parseOver30, type EmployeeField, type LeaveField, type Table } from './importer'
 import type { Contract, Employee, LeaveRecord, OpeningLot, Settings } from './types'
 
@@ -93,6 +93,7 @@ export function planEmployees(
     if (cur && !daysRaw && !annualRaw) {
       days = cur.daysPerWeek > 0 ? cur.daysPerWeek : null
       annual = cur.annualDays ?? null
+      notes.push(`週の勤務日数が表に無いため、いまの契約（${contractLabel(cur)}）のままにします`)
     }
     if (days == null && annual == null) days = 5
     const over30Raw = cell(r, map.hours)

@@ -1,7 +1,9 @@
 import { FileSpreadsheet, Printer } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { parts } from '../lib/dates'
+import type { LeaveRecord } from '../lib/types'
 import { fmt, fmtDays } from '../lib/dates'
-import { datesText, exportExcel, ledgerRows, takenText, type LedgerRange, type LedgerRow } from '../lib/exporter'
+import { exportExcel, ledgerRows, takenText, type LedgerRange, type LedgerRow } from '../lib/exporter'
 import { useStore } from '../store'
 import { NoticeSlips } from './NoticeSlips'
 import { Button, Card, Notice, PageHead } from './ui'
@@ -63,6 +65,7 @@ function Ledger() {
             <h2 className="font-display text-lg text-ink">年次有給休暇管理簿</h2>
             <p className="text-sm text-slate-600">
               労働者ごとに「基準日・日数・時季（取得した日）」をまとめた帳簿です。保存期間は法律では5年（当分の間は3年）で、いまの設定は<strong>{settings.ledgerRetentionYears}年</strong>です（「設定」で変えられます）。
+              管理簿は実際に休んだ日の記録なので、集計日より後の予定は載せません（予定はホームと「本人へのお知らせ」に出ます）。
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -138,7 +141,9 @@ function Ledger() {
                         <td className="whitespace-nowrap px-3 py-1.5">{r.contract}</td>
                         <td className="whitespace-nowrap px-3 py-1.5 text-right">{r.skipped ? '0（8割未満）' : fmtDays(r.days)}</td>
                         <td className="whitespace-nowrap px-3 py-1.5">〜{fmt(r.periodEnd)}</td>
-                        <td className="px-3 py-1.5">{datesText(r.dates) || '—'}</td>
+                        <td className="px-3 py-1.5">
+                          <DateChips dates={r.dates} />
+                        </td>
                         <td className="whitespace-nowrap px-3 py-1.5 text-right">{takenText(r)}</td>
                         <td className="whitespace-nowrap px-3 py-1.5 text-right">
                           {fmtDays(r.balanceAtEnd)}
@@ -154,6 +159,45 @@ function Ledger() {
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+const WEEK = ['日', '月', '火', '水', '木', '金', '土']
+
+/** 取得した日（時季）を、年ごとにまとめた小さな札で並べる。半休・時間単位は札の中に小さく書く */
+function DateChips({ dates }: { dates: LeaveRecord[] }) {
+  if (dates.length === 0) return <span className="text-slate-400">—</span>
+  const byYear = new Map<number, LeaveRecord[]>()
+  for (const d of dates) {
+    const y = parts(d.date)[0]
+    byYear.set(y, [...(byYear.get(y) ?? []), d])
+  }
+  return (
+    <div className="space-y-1">
+      {[...byYear].map(([y, ds]) => (
+        <div key={y} className="flex flex-wrap items-center gap-1">
+          <span className="mr-0.5 text-[11px] font-bold text-slate-500">{y}年</span>
+          {ds.map((d) => {
+            const [, m, day] = parts(d.date)
+            const wd = WEEK[new Date(Date.UTC(y, m - 1, day)).getUTCDay()]
+            const tag = d.kind === 'am' ? '午前' : d.kind === 'pm' ? '午後' : d.kind === 'hours' ? `${d.hours}h` : ''
+            return (
+              <span
+                key={d.id}
+                title={d.note || undefined}
+                className={`tabular inline-flex items-baseline gap-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs ring-1 print:ring-slate-400 ${tag ? 'bg-white ring-line' : 'bg-brand-50 ring-brand-100'}`}
+              >
+                <span className="font-bold text-ink">
+                  {m}/{day}
+                </span>
+                <span className="text-[10px] text-slate-500">{wd}</span>
+                {tag && <span className="ml-0.5 text-[10px] font-bold text-brand-700">{tag}</span>}
+              </span>
+            )
+          })}
+        </div>
+      ))}
     </div>
   )
 }
