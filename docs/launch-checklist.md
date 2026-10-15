@@ -149,7 +149,9 @@ Stripe は更新の請求書を作った時点で期間を次へ進めるので�
 **「サブスクリプションをキャンセルする」になっていることを確かめる。** 違っていたら、全銀ポン・MiseFits への影響を確かめてから変える。
 あわせて「支払いに失敗したときに顧客へメールを送る」がオンか確かめる（共通メモ5章の5）。
 
-## 4. シークレットとデプロイ — 未
+## 4. シークレットとデプロイ — 関数は済（2026-10-15 初回デプロイ）
+
+2026-10-15 に運営者が `firebase deploy --only functions:yukyupon --project misefits` で2つの関数を作成。外から確認: 署名なしの Webhook 400、キー更新は不正な ID 400・未発行の ID 404・OPTIONS 204・`Access-Control-Allow-Origin: https://yukyu.kokokikaku.com`。`YP_STRIPE_WEBHOOK_SECRET` はまだ仮の値（5章で入れ替える）。
 
 Firebase プロジェクト `misefits` の Secret Manager。共用の4つ（`STRIPE_SECRET_KEY` `SMTP_USER` `MAIL_FROM` `SMTP_PASS`）は既にある。新しく2つ足す。
 
