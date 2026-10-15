@@ -54,6 +54,21 @@ export const AD_ITEMS: AdItem[] = [
     tag: '<a href="//af.moshimo.com/af/c/click?a_id=5850788&p_id=3772&pc_id=9267&pl_id=52805" rel="nofollow" referrerpolicy="no-referrer-when-downgrade" attributionsrc><img src="//image.moshimo.com/af-img/3204/000000052805.jpg" width="234" height="60" style="border:none;"></a><img src="//i.moshimo.com/af/i/impression?a_id=5850788&p_id=3772&pc_id=9267&pl_id=52805" width="1" height="1" style="border:none;" loading="lazy">',
     slots: ['guide'],
   },
+  // A8.net（サイト「有休ポン」、2026-10-15 提携）。タグは運営者が管理画面からコピーしたもの（書き換えない）
+  {
+    id: 'yayoi-kyuyo-next',
+    heading: '給与計算や年末調整もまとめたくなったら',
+    lead: '勤怠の打刻から給与計算・年末調整・入社の手続きまで、ひとつで扱えるクラウドの給与ソフトです（最大2か月の無料体験あり）。',
+    tag: '<a href="https://px.a8.net/svt/ejp?a8mat=4BEH5B+67V6EQ+35XE+6G4HE" rel="nofollow">弥生給与 Nextはこちら</a><img border="0" width="1" height="1" src="https://www18.a8.net/0.gif?a8mat=4BEH5B+67V6EQ+35XE+6G4HE" alt="">',
+    slots: ['home', 'guide'],
+  },
+  {
+    id: 'mf-cloud',
+    heading: '会計や給与などの事務をクラウドでまとめるなら',
+    lead: '会計をはじめとするバックオフィスの業務を、クラウドで扱えるサービスです。',
+    tag: '<a href="https://px.a8.net/svt/ejp?a8mat=4BEH5B+5URN3M+3SPO+8RK61U" rel="nofollow">マネーフォワード【マネーフォワード クラウド】</a><img border="0" width="1" height="1" src="https://www12.a8.net/0.gif?a8mat=4BEH5B+5URN3M+3SPO+8RK61U" alt="">',
+    slots: ['guide'],
+  },
   // 例（A8.net のテキスト広告）:
   // {
   //   id: 'example',
