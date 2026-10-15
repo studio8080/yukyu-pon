@@ -105,14 +105,17 @@ Excel の有休管理が壊れかけている会社。
 
 - Stripe のサブスク（月・年、自動更新）→ Webhook → Cloud Functions（Firebase `misefits` に codebase `yukyupon` で相乗り、asia-northeast1）
   → 署名付きキー（YP1-、Ed25519。Pro は `n:30`、ビジネスは上限なし）を発行してメール。
-- キーの寿命は最長30日。ブラウザが「期限10日前」か「前回確認から7日」でライセンスIDだけを送って取り直す。解約済みなら 410 → キーを外して無料に戻る。
+- キーの寿命は最長30日。ブラウザが「期限10日前」か「前回確認から7日」でライセンスIDだけを送って取り直す。Stripe で解約を確かめたときだけ 410 → キーを外して無料に戻る。Stripe に照会できず判断できなければ 503 で、ブラウザはキーを消さない。
+- 使える最終日は契約の状態で決める（`functions/billing.js` の `entitledUntilOf`）。契約中は期間の末日＋3日、日付指定の解約はその日＋3日、再請求中（past_due）は期間の初日から30日＋3日まで、未払い（unpaid）は今の期間の初日＋3日、一度も払われていない契約には出さない。
 - 共用の Stripe アカウントなので、**商品ID（`functions/plans.js`）で絞る。空なら何もしない。**
 - Webhook はイベントIDで二重処理を防ぎ、メールを送れなければ 500 で再送させる（共通メモ5章の4）。
 - 秘密鍵: `C:\Users\chaha\.yukyu-pon\license-private.pem`（リポジトリ外。要バックアップ）。公開鍵: `src/lib/license.ts`。
 - 手動発行: `node tools/issue-key.mjs --months 12 --plan pro|business [--id ライセンスID]`（台帳 `tools/issued-keys.csv` は gitignore）。
-- `src/config.ts` の `PRO_ENFORCED` は、¥0 クーポンで本番の経路（購入→キー→プラン変更→解約→失効）を通してから `true` にする。
+- 確かめ方: `functions/test/functions.test.js`（Webhook・キー更新の全経路。イベントは Stripe の実際の形）、`src/lib/license.test.ts`・`plan.test.ts`（サーバーのキーをブラウザが読めるか・自動更新）、`tools/preflight.mjs`（設定の照合。販売前は `--sale`）。
+- **テスト購入はしない**（2026-10-15 運営者の方針）。代わりにテスト・preflight・全銀ポンの実地の結果で保証し、最初の実購入を通し確認として見る（`docs/launch-checklist.md` 6・7章）。
+- `src/config.ts` の `PRO_ENFORCED` は、支払いリンク4本を入れて `node tools/preflight.mjs --sale` が通るときに `true` にする。
 
-**料金・上限を変えるときに同時に直すもの**: `functions/plans.js`、`functions/index.js` のメール文（「無料プラン（在籍5人まで）」）、`src/config.ts`（`PLANS`・`FREE_LIMIT`・`planName`）、`src/lib/plan.ts` の `limitMessage`、`public/pricing.html`（表と確認事項）、`public/terms.html` 第3条、`public/tokushoho.html`（販売価格）、`public/llms.txt`、`index.html` の title・説明、Stripe の価格と支払いリンクのカスタムテキスト（`docs/launch-checklist.md` 3-2）、この README。
+**料金・上限を変えるときに同時に直すもの**: `functions/plans.js`、`functions/billing.js` のメール文（「無料プラン（在籍5人まで）」）。直したら `node tools/preflight.mjs` で照合する、`src/config.ts`（`PLANS`・`FREE_LIMIT`・`planName`）、`src/lib/plan.ts` の `limitMessage`、`public/pricing.html`（表と確認事項）、`public/terms.html` 第3条、`public/tokushoho.html`（販売価格）、`public/llms.txt`、`index.html` の title・説明、Stripe の価格と支払いリンクのカスタムテキスト（`docs/launch-checklist.md` 3-2）、この README。
 
 **規約・表示・決済は全銀ポンと同じ設計にそろえる**（2026-10-12 運営者の決定）。法令との照合は `docs/compliance-check.md`。運営者「ここ企画」は個人事業の屋号なので、特商法の表記とプライバシーポリシーでは屋号である旨を書き、氏名・住所は請求に応じて遅滞なく開示する。
 

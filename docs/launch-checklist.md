@@ -12,8 +12,12 @@ Stripe（支払い成功）──Webhook──▶ yukyuponStripeWebhook（misefi
                                   └─ イベントIDで二重処理を防ぐ（yukyuponEvents）。メールを送れなければ 500 で Stripe に再送させる
 
 ブラウザ（期限10日前か、前回確認から7日）──ライセンスIDだけ──▶ yukyuponLicense
-                                  └─ Stripe に契約状態を直接照会 → 新しいキー（プラン変更も反映）／ 410（解約済み）
+                                  └─ Stripe に契約状態を直接照会 → 新しいキー（プラン変更も反映）／ 410（Stripe で解約を確認）
+                                     ／ 503（Stripe に照会できず判断できない。ブラウザはキーを消さない）
 ```
+
+判定とメールの文面は `functions/billing.js`（外部モジュールなし）。テストは `functions/test/functions.test.js`（Webhook・キー更新の全経路）と
+`src/lib/license.test.ts`・`src/lib/plan.test.ts`（サーバーのキーをブラウザが読めるか、自動更新の判定）。設定の照合は `tools/preflight.mjs`。
 
 料金（2026-10-06 決定）: 無料（在籍5人まで）／Pro ¥480/月・¥4,800/年（30人まで）／ビジネス ¥980/月・¥9,800/年（無制限）。すべて税込。
 
@@ -31,11 +35,15 @@ Stripe（支払い成功）──Webhook──▶ yukyuponStripeWebhook（misefi
 | 秘密鍵のバックアップ（2） | 未確認（運営者） |
 | シークレット（4） | 10/07 に登録した記録あり。CLI・gcloud の認証切れで今回は読めず |
 | Functions のデプロイ（4） | 未（`yukyuponLicense`・`yukyuponStripeWebhook` とも 404） |
-| 支払いリンク4本（3-2）・Webhook（5）・¥0 の通し確認（6）・販売開始（7） | 未 |
+| 課金のコードとテスト（2026-10-15 午後） | 済。テスト購入をしない方針に合わせ、Stripe の実際の形でテストを足し、見つけた不具合を直した（6章）。`tools/preflight.mjs` を追加 |
+| 支払いリンク4本（3-2）・Webhook（5）・販売開始（7） | 未。¥0 の通し確認はしない（6章。最初の実購入で見ることは7章） |
 | 会社サイトの `https://kokokikaku.com/policies` | **有休ポンが載っていない。** Stripe の決済画面・ポータルの「規約」リンクの先なので、販売前に追加する（kokokikaku-web。公開は手動のワークフロー） |
 | 返金時の Stripe のメール | オフ（共用。必要ならオンにする） |
 
 Webhook を作るときの API バージョンは、全銀ポンの送信先と同じ `2026-08-26.dahlia`。
+コードはこの形（期間は `items.data[].current_period_end`、請求書の契約は `parent.subscription_details.subscription`、明細の商品は `pricing.price_details.product`、
+期間末の解約は `cancel_at_period_end` か `cancel_at`）と、それより前の形（期間がサブスクリプション直下、`invoice.subscription`、明細の `price.product`）の両方で動くことを
+テストで確かめてある（2026-10-15、Stripe の API リファレンスと changelog で照合）。関数の中の照会は stripe-node 18.5 の既定（`2025-08-27.basil`）で、形は Webhook と同じ。
 
 ## 1. DNS（サイトを見えるようにする）— **完了（2026-10-07）**
 
@@ -133,8 +141,10 @@ Squarespace（`kokokikaku.com`、ログインは `mikan@kokokikaku.com`）でレ
 **確認済み（2026-10-12、ダッシュボードで読み取り）: 「支払いのリトライがすべて失敗した場合」＝サブスクリプションをキャンセル、「カード決済が失敗した場合にメールを送信」＝オン。** 変える必要なし。
 
 設定 → Billing → サブスクリプションとメール →「再試行がすべて失敗した場合」。
-`functions/index.js` は全銀ポンと同じ作りで、`past_due`（再請求中）はキーを出し続け、それ以外は契約期間の末日＋3日まで使わせる。
-Stripe は更新の請求書を作った時点で期間を次へ進めるので、ここが「未払いのままにする」「期日超過のままにする」だと、払われていない契約にもキーが出続ける（年払いなら約1年）。
+`functions/billing.js` の `entitledUntilOf` で、`past_due`（再請求中）は**今の期間の初日から30日（＋猶予3日）まで**キーを出す（2026-10-15 に上限を追加。全銀ポンは上限なし）。
+`unpaid`・`paused` は支払い済みの期間（今の期間の初日＋3日）まで、`incomplete`・`incomplete_expired` は出さない。
+Stripe は更新の請求書を作った時点で期間を次へ進めるので、上限が無いと、ここが「未払いのままにする」「期日超過のままにする」のとき払われていない契約にもキーが出続ける（年払いなら約1年）。
+**再試行の期間（スマートリトライ）は1か月以内にしておく**（それより長いと、再請求中の人のキーが先に切れる。支払いのあと、キーのメールのキーを貼り直せば戻る）。
 **「サブスクリプションをキャンセルする」になっていることを確かめる。** 違っていたら、全銀ポン・MiseFits への影響を確かめてから変える。
 あわせて「支払いに失敗したときに顧客へメールを送る」がオンか確かめる（共通メモ5章の5）。
 
@@ -152,7 +162,22 @@ firebase functions:secrets:set YP_LICENSE_PRIVATE_KEY --project misefits --data-
 firebase functions:secrets:set YP_STRIPE_WEBHOOK_SECRET --project misefits
 ```
 
-2つ目は Webhook を作る前なので、いったん仮の値（`whsec_placeholder`）を入れる。そのあとデプロイ:
+2つ目は Webhook を作る前なので、いったん仮の値（`whsec_placeholder`）を入れる。
+
+### デプロイ前（毎回）
+
+ネットワーク・秘密情報なしで実行できる。**NG が1つでもあればデプロイしない。**
+
+```bash
+N=/c/Users/chaha/tools/node-v24.14.0-win-x64/node.exe
+$N functions/test/functions.test.js     # Webhook・キー更新の全経路（Stripe・Firestore・メールは差し替え）
+$N node_modules/vitest/vitest.mjs run   # サーバーのキーをブラウザが読めるか、自動更新の判定
+$N tools/preflight.mjs                  # 商品ID・URL・CSP・CORS・ポータル・差出人・メール文・料金・キーの形式・購入リンクの状態・秘密情報
+```
+
+`functions/node_modules` があれば、署名の検証は本物の stripe SDK でも確かめる（`cd functions && npm ci` のあと）。
+
+そのあとデプロイ:
 
 ```bash
 firebase deploy --only functions:yukyupon --project misefits
@@ -178,34 +203,59 @@ firebase functions:secrets:set YP_STRIPE_WEBHOOK_SECRET --project misefits
 firebase deploy --only functions:yukyupon --project misefits
 ```
 
-## 6. 本番の経路を ¥0 で通す（共通メモ5章の1）— 未
+デプロイしたら、外から次の3つだけ確かめる（どれも何も書き込まない）。
 
-1回だけ使える100%割引で、本物の決済経路を通す。
-
-| 用意するもの | 内容 |
+| 確かめること | 期待する結果 |
 |---|---|
-| クーポン | 「解約テスト用（有休ポン・初月無料）」100%・1回・**有休ポン Pro・ビジネスのみ**・引き換え1回 |
-| プロモーションコード | 引き換え1回。コードは公開リポジトリに書かない |
-| Pro 月払いの支払いリンク | 「プロモーションコードを許可」を一時的にオン |
+| 署名なしで Webhook の URL に POST | 400（署名の検証が動いている） |
+| `…/yukyuponLicense?id=unknown123` を開く | 404（Firestore に届いている） |
+| Stripe の Webhook「有休ポン」の画面 | 送信先が有効、イベント4件、API バージョン `2026-08-26.dahlia` |
 
-手順（★は運営者、ほかは AI が Stripe・Firestore・ログで確かめる）
+## 6. テスト購入はしない — 代わりに何で保証したか（2026-10-15 運営者の方針）
 
-1. ★ Pro 月払いのリンクから、自分のメール・カード・プロモーションコードで申し込む（請求 ¥0）
-2. Webhook の配信が 200、Firestore に契約（plan: Pro, limit: 30）、キーのメールが届く。差出人名が「有休ポン（ここ企画）」
-3. ★ メールの `/#pro` リンクを開き、キーを貼って「Pro（在籍30人まで）が有効」になるのを見る
-4. ★ メールの契約の管理ページで、ビジネスに変更する → 有休ポンの「更新を確認」で「ビジネス（人数無制限）」になる
-5. ★ 契約の管理ページで解約 →「解約を承りました」が1通だけ届く
-6. Stripe の画面でサブスクリプションを「今すぐキャンセル」→「契約が終了しました」が届く。猶予（3日）後にキー更新が 410 → ブラウザがキーを外す
-7. 片付け: 支払いリンクの「プロモーションコードを許可」をオフに戻す
+**運営者の方針: 本番のテスト購入（¥0 クーポンでの通し確認）はしない。** 共通メモ5章の1「本番の経路を一度は通す」は、
+次の3つで置き換え、最初の実購入を「通し確認」として扱う（7章の「最初の購入で見ること」）。
 
-## 7. 販売を始める — 未（6が通ってから）
+| 保証の手段 | 何を確かめているか |
+|---|---|
+| `functions/test/functions.test.js` | Webhook・キー更新の全経路。イベントは Stripe の実際の形（dahlia、使わない項目も含む）と古い形の両方。新規（Pro・ビジネス・年払い）、プラン変更、解約予約（`cancel_at_period_end` と `cancel_at`）と取り消し、即時解約、状態ごと（past_due / unpaid / incomplete / incomplete_expired / paused / canceled）、二重配信・同時到着・途中で落ちた再送、メール・SMTP・Stripe 照会・Firestore の失敗、メールアドレスが無いとき、ほかの製品のイベント、署名の検証（`functions/node_modules` があれば本物の SDK でも） |
+| `src/lib/license.test.ts`・`plan.test.ts` | `functions/sign.js` のキーをブラウザの検証が通す、本番の公開鍵と形式・アルゴリズムが一致、自動更新の判定（期限10日前・7日ごと・410 でだけキーを外す・404/503/オフラインは何もしない） |
+| `tools/preflight.mjs` | 商品ID・更新先の URL・CSP・CORS・ポータル・差出人・メール文・料金・キーの形式・購入リンクの状態・秘密情報 |
+| 全銀ポンの実地の結果（2026-10-02〜06） | 同じ構成（共用の制限付きキー・SMTP・`MAIL_FROM`・ポータル・Webhook の形）で、購入 → キー → 解約受付 → 即時キャンセル → 終了 → 猶予後の 410 まで本番で通過。共用部分（制限付きキーの権限、SMTP、ポータルのリンク）は有休ポンも同じものを使う |
 
-1. `src/config.ts` の `PRO_ENFORCED` を `true`
-2. `public/pricing.html` の `#status` のお知らせを「在籍6人以上は有料プランが必要です」などに差し替える
-3. README 4章・`src/components/SettingsView.tsx` の「公開記念」の文言が出ないことを確かめる（`PRO_ENFORCED` で自動的に消える）
-4. push → GitHub Actions が公開する
+テストで保証できないもの（＝本番の設定）は、最初の実購入で見る（7章）。
+
+- `YP_STRIPE_WEBHOOK_SECRET` が送信先「有休ポン」の署名シークレットと一致しているか（違えば Webhook が 400）
+- 送信先のイベント4件・API バージョン・URL
+- `YP_LICENSE_PRIVATE_KEY` が `src/lib/license.ts` の公開鍵と対になっているか（2026-10-07 に一致を確認済み。入れ替えたら要確認）
+- 支払いリンクの設定（メール収集オン・Managed Payments オフ・カスタムテキスト）とポータルで有休ポンの4価格を切り替えられるか
+
+## 7. 販売を始める — 未
+
+販売開始前に、デプロイ前のテスト（4章）に加えて次を実行し、**NG が無いこと**を確かめる。
+
+```bash
+$N tools/preflight.mjs --sale   # 購入リンク4本が buy.stripe.com、PRO_ENFORCED=true まで見る
+```
+
+1. 支払いリンク4本（3-2）を `public/pricing.html` に入れる
+2. `src/config.ts` の `PRO_ENFORCED` を `true`
+3. `public/pricing.html` の `#status` のお知らせを「在籍6人以上は有料プランが必要です」などに差し替える
+4. README 4章・`src/components/SettingsView.tsx` の「公開記念」の文言が出ないことを確かめる（`PRO_ENFORCED` で自動的に消える）
+5. push → GitHub Actions が公開する
 
 すでに6人以上で使っている人がいる場合: 利用規約8条のとおり、重要な変更は1か月前に告知する（`pricing.html` の `#status` と、画面のお知らせ）。
+
+### 最初の実購入で見ること（通し確認の代わり。AI が Stripe・Firestore・ログで確かめる）
+
+購入の通知が来たら、その日のうちに次を見る。1つでも違えば8章の手動発行で先にキーを送り、原因を直してから Stripe でイベントを再送する（同じイベントIDなら二重には送らない）。
+
+1. Stripe → Webhook「有休ポン」→「イベントの配信」: `checkout.session.completed` と `invoice.paid` が **200**（400 は署名シークレット、500 は権限・SMTP。本文の `skipped` が `other product` なら `plans.js` の商品ID）
+2. Firestore `yukyuponLicenses/<ライセンスID>`: `status: active`、`plan`・`limit`（Pro は 30、ビジネスは null）、`email`、`entitledUntil` が期間の末日＋3日、`stripeCheckedAt` あり
+3. Firestore `yukyuponEvents/<イベントID>`: `doneAt` と `mailedAt` がある（`lastError` が無い）
+4. 購入者にキーのメールが届いている（差出人「有休ポン（ここ企画）」。届いていなければ「要対応」のメールが運営者に来ているはず）
+5. ブラウザ: 購入者から「有効にならない」と言われたら、`/#pro` に貼ったキーで「Pro（在籍30人まで）が有効」になるか、`…/yukyuponLicense?id=<ライセンスID>` が 200 を返すかを見る
+6. 最初の解約・プラン変更・更新の請求が来たときも、同じく「イベントの配信」が 200 かを見る（`customer.subscription.updated`・`deleted`、2回目の `invoice.paid`）
 
 ## 8. 申し込みが来たとき・キーが届かないとき
 
@@ -216,6 +266,10 @@ firebase deploy --only functions:yukyupon --project misefits
   node tools/issue-key.mjs --months 1 --plan pro --id <上のID> --memo "メールアドレス"
   ```
 - メールが送れないとき、Webhook は 500 を返して Stripe に再送させ、運営者（MAIL_FROM のアドレス）に「要対応」のメールを送る。
+- 購入者のメールアドレスが分からないとき・支払いが済んでいない契約（incomplete）のときも、運営者に「【要対応】有休ポン: …」が届く（前者はキーつき。購入者に転送する）。
+- Stripe の照会が権限不足で失敗したら 500（黙って諦めない）。Stripe が再送し、失敗が続けば運営者に知らせる。
+- 同じイベントが同時に届いたら、後の方は 409（Stripe が後で再送する。異常ではない）。
+- キー更新が 503 を返すのは、Stripe に照会できず手元の記録でも判断できないとき。ブラウザはキーを消さず、次に開いたときに取り直す。
 - ログ: Cloud Logging で `resource.labels.service_name="yukyuponstripewebhook"`。
 
 ### 最小残高（2026-10-15 設定。共用アカウント）

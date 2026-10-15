@@ -5,7 +5,7 @@ export const FREE_LIMIT = 5
 
 /**
  * 無料の人数を超えたら Pro を必須にするか。
- * Stripe の本番の経路（購入→キー→解約→失効）を通して確かめてから true にする（docs/launch-checklist.md）。
+ * 支払いリンク4本を入れ、`node tools/preflight.mjs --sale` が通ってから true にする（docs/launch-checklist.md 7章。テスト購入はしない方針）。
  * true にしても、すでに入っているデータの閲覧・管理簿の出力・バックアップは止めない（データを人質にしない）。
  */
 export const PRO_ENFORCED = false

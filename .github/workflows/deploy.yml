@@ -28,6 +28,7 @@ jobs:
       - run: npm ci
       - run: npx vitest run
       - run: node functions/test/functions.test.js
+      - run: node tools/preflight.mjs
       - run: npx tsc -b
       - run: npx vite build
       - uses: actions/upload-pages-artifact@v3

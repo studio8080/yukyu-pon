@@ -74,12 +74,19 @@ const dayDiff = (a: string, b: string) => Math.round((Date.parse(a + 'T00:00:00Z
 
 /**
  * 必要ならキーを取り直す。送るのはライセンスIDだけ。
- * 契約中なら期限が延びたキー、解約済みなら 410 → revoked。通信できなければ何もしない（手元のキーの期限までは使える）。
+ * 契約中なら期限が延びたキー、解約済みなら 410 → revoked。
+ * それ以外（通信できない・503 で Stripe に照会できない・404 の手動発行キー など）は何もしない（手元のキーの期限までは使える）。
+ * キーを消すのは、サーバーが Stripe で解約を確かめた 410 のときだけ。
  */
-export async function renewIfNeeded(api: string, key: string, checkedAt: string | null, today: string, force = false): Promise<RenewResult> {
+export function renewIfNeeded(api: string, key: string, checkedAt: string | null, today: string, force = false): Promise<RenewResult> {
+  return renewWith(PUBLIC_KEY, api, key, checkedAt, today, force)
+}
+
+/** renewIfNeeded の本体（公開鍵を差し替えられる。テストで使い捨ての鍵を使うため） */
+export async function renewWith(pub: string, api: string, key: string, checkedAt: string | null, today: string, force = false): Promise<RenewResult> {
   if (!api || !key) return { kind: 'skip', reason: 'no-key' }
   const p = peekPayload(key)
-  if (!p?.id) return { kind: 'skip', reason: 'no-id' }
+  if (!p?.id || !/^[A-Za-z0-9_-]{6,32}$/.test(p.id)) return { kind: 'skip', reason: 'no-id' }
   if (!force) {
     const soon = !p.e || dayDiff(p.e, today) <= REFRESH_WITHIN_DAYS
     const stale = !checkedAt || dayDiff(today, checkedAt.slice(0, 10)) >= RECHECK_AFTER_DAYS
@@ -100,7 +107,8 @@ export async function renewIfNeeded(api: string, key: string, checkedAt: string 
     return { kind: 'skip', reason: 'bad-response' }
   }
   if (!j?.key) return { kind: 'skip', reason: 'bad-response' }
-  const v = await verifyLicense(j.key, today)
+  const v = await verifyWith(pub, j.key, today)
   if (!v.ok) return { kind: 'skip', reason: v.reason }
+  if (v.payload.id !== p.id) return { kind: 'skip', reason: 'id-mismatch' } // 別の契約のキーには差し替えない
   return { kind: 'renewed', key: j.key, expiry: v.payload.e }
 }

@@ -21,7 +21,8 @@ export async function renewLicense(force = false): Promise<string> {
   }
   if (r.reason === 'offline') return '通信できませんでした。手元のキーの期限までは、そのまま使えます。'
   if (r.reason === 'not-due') return 'まだ確認の時期ではありません。'
-  if (r.reason.startsWith('http-404')) return 'このキーは自動更新の対象ではありません（手動で発行したキー）。'
+  if (r.reason === 'http-404') return 'このキーは自動更新の対象ではありません（手動で発行したキー）。'
+  if (/^http-5/.test(r.reason)) return '契約の確認先が一時的に使えません。手元のキーの期限までは、そのまま使えます（次に開いたときにもう一度確かめます）。'
   return `確認できませんでした（${r.reason}）。`
 }
 
