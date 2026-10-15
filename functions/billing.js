@@ -15,8 +15,9 @@ const { expiryFromUnix, daysFromToday } = require('./sign');
 
 const SITE = 'https://yukyu.kokokikaku.com';
 const ALLOWED_ORIGINS = [SITE, 'http://localhost:5191', 'http://localhost:5192'];
-// Stripe カスタマーポータルのログインリンク（アカウント共通。全銀ポンと同じもの）
-const PORTAL_URL = 'https://billing.stripe.com/p/login/cNi7sEb0eg2g7HtcOv9R600';
+// Stripe カスタマーポータルのログインリンク（有休ポン専用の構成 bpc_1UQl1d3C6tqke0fyU5cML6J2、2026-10-15 有効化）。
+// 全銀ポンのリンク（デフォルトの構成）を使うと、プランの切り替え先に有休ポンの価格が出ない。
+const PORTAL_URL = 'https://billing.stripe.com/p/login/bJecMY2tI5nC0f1dSz9R601';
 const SENDER_NAME = '有休ポン（ここ企画）';
 const REGION = 'asia-northeast1';
 

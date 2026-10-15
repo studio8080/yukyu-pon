@@ -117,7 +117,7 @@ tryRun('メール', () => {
   check(/^https:\/\/billing\.stripe\.com\/p\/login\/[A-Za-z0-9]+$/.test(B.PORTAL_URL), 'PORTAL_URL がカスタマーポータルのログインリンク', B.PORTAL_URL)
   if (zenginSource()) {
     const zp = zenginSource().match(/PORTAL_URL = '([^']*)'/)
-    check(zp && zp[1] === B.PORTAL_URL, 'PORTAL_URL が全銀ポンと同じ（アカウント共通のリンク）', zp ? zp[1] : '(全銀ポン側で見つからない)')
+    check(zp && zp[1] !== B.PORTAL_URL, 'PORTAL_URL が有休ポン専用（全銀ポンのリンクだとプランの切り替え先に有休ポンの価格が出ない）', B.PORTAL_URL)
   } else warn('PORTAL_URL を全銀ポンと照合できない（../zengin-pon が無い）')
   const plan = PLANS.pro
   const bodies = {
