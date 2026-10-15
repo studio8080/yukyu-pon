@@ -16,6 +16,9 @@ const SALE = process.argv.includes('--sale')
 const require = createRequire(import.meta.url)
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8')
 const exists = (p) => fs.existsSync(path.join(ROOT, p))
+/** 隣にある全銀ポンの課金コード（定数は functions/billing.js、古い形は index.js にある）。無ければ空文字 */
+const zenginSource = () =>
+  ['../zengin-pon/functions/billing.js', '../zengin-pon/functions/index.js'].filter(exists).map(read).join('\n')
 
 const results = []
 const ok = (name, detail = '') => results.push({ s: 'ok', name, detail })
@@ -56,7 +59,7 @@ const yen = (n) => n.toLocaleString('en-US')
 tryRun('商品ID', () => {
   for (const [k, p] of Object.entries(PLANS)) check(/^prod_[A-Za-z0-9]{8,}$/.test(p.productId || ''), `plans.js: ${k} の商品IDが入っている`, p.productId || '(空)')
   check(PLANS.pro.productId !== PLANS.business.productId, 'plans.js: Pro とビジネスの商品IDが別')
-  const zp = exists('../zengin-pon/functions/index.js') ? read('../zengin-pon/functions/index.js').match(/ZP_PRODUCT_ID = '([^']+)'/) : null
+  const zp = zenginSource().match(/ZP_PRODUCT_ID = '([^']+)'/)
   if (zp) check(!Object.values(PLANS).some((p) => p.productId === zp[1]), 'plans.js: 全銀ポンの商品IDと重ならない', zp[1])
 })
 
@@ -112,8 +115,8 @@ tryRun('メール', () => {
   check(B.SENDER_NAME === '有休ポン（ここ企画）', '差出人名が「有休ポン（ここ企画）」（共用の MAIL_FROM の表示名を使わない）', B.SENDER_NAME)
   check(JSON.stringify(B.fromHeader('MiseFits <studio@kokokikaku.com>')) === JSON.stringify({ name: B.SENDER_NAME, address: 'studio@kokokikaku.com' }), 'MAIL_FROM からアドレスだけ取り出す')
   check(/^https:\/\/billing\.stripe\.com\/p\/login\/[A-Za-z0-9]+$/.test(B.PORTAL_URL), 'PORTAL_URL がカスタマーポータルのログインリンク', B.PORTAL_URL)
-  if (exists('../zengin-pon/functions/index.js')) {
-    const zp = read('../zengin-pon/functions/index.js').match(/PORTAL_URL = '([^']*)'/)
+  if (zenginSource()) {
+    const zp = zenginSource().match(/PORTAL_URL = '([^']*)'/)
     check(zp && zp[1] === B.PORTAL_URL, 'PORTAL_URL が全銀ポンと同じ（アカウント共通のリンク）', zp ? zp[1] : '(全銀ポン側で見つからない)')
   } else warn('PORTAL_URL を全銀ポンと照合できない（../zengin-pon が無い）')
   const plan = PLANS.pro
