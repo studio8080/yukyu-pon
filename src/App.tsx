@@ -105,6 +105,9 @@ export default function App() {
             </div>
             <ul className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
               <li>
+                <a href="./articles/" className="hover:text-white hover:underline">有給休暇の解説記事</a>
+              </li>
+              <li>
                 <a href="./pricing.html" className="hover:text-white hover:underline">料金プラン</a>
               </li>
               <li>
