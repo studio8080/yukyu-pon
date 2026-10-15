@@ -540,7 +540,7 @@ function ProCard() {
         ))}
       </div>
       <p className="mb-3 text-sm text-slate-600">
-        すべて税込。機能はどのプランも同じで、違うのは管理できる在籍人数だけです（退職した人は数えません）。いま在籍 {plan.activeCount}人。
+        すべて税込。機能はどのプランも同じで、違うのは管理できる在籍人数（退職した人は数えません）と、広告の有無（有料プランは広告なし）です。いま在籍 {plan.activeCount}人。
         {!PRO_ENFORCED && <strong> いまは公開記念として、人数の制限なく無料で使えます。</strong>}
         有料プランでも、入れたデータの閲覧・管理簿の出力・バックアップは止めません。{' '}
         <a href="./pricing.html" className="text-brand-700 underline">
