@@ -11,7 +11,7 @@ const csp: Plugin = {
   transformIndexHtml: (html) =>
     html.replace(
       '<meta charset="UTF-8" />',
-      `<meta charset="UTF-8" />\n    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https://*.a8.net https://i.moshimo.com; font-src 'self'; connect-src https://asia-northeast1-misefits.cloudfunctions.net; object-src 'none'; base-uri 'none'; form-action 'none'" />`,
+      `<meta charset="UTF-8" />\n    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https://*.a8.net https://i.moshimo.com https://image.moshimo.com; font-src 'self'; connect-src https://asia-northeast1-misefits.cloudfunctions.net; object-src 'none'; base-uri 'none'; form-action 'none'" />`,
     ),
 }
 

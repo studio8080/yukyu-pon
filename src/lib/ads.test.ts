@@ -13,6 +13,16 @@ describe('広告タグの安全確認（従業員のデータを守るため、�
     expect(isSafeAdTag(a8)).toBe(true)
     expect(isSafeAdTag(moshimo)).toBe(true)
   })
+  it('もしものバナー広告（画像。プロトコル省略の // 形式）も通す', () => {
+    const banner =
+      '<a href="//af.moshimo.com/af/c/click?a_id=1&p_id=2&pc_id=3&pl_id=4" rel="nofollow" referrerpolicy="no-referrer-when-downgrade" attributionsrc>' +
+      '<img src="//image.moshimo.com/af-img/5044/000000096899.png" width="728" height="91" style="border:none;"></a>' +
+      '<img src="//i.moshimo.com/af/i/impression?a_id=1&p_id=2&pc_id=3&pl_id=4" width="1" height="1" style="border:none;" loading="lazy">'
+    expect(isSafeAdTag(banner)).toBe(true)
+    expect(isSafeAdTag(banner.replace('//image.moshimo.com', '//images.example.com'))).toBe(false)
+    expect(isSafeAdTag(banner.replace('//af.moshimo.com', '//evil.example.com'))).toBe(false)
+    expect(isSafeAdTag(banner.replace('//af.moshimo.com', 'http://af.moshimo.com'))).toBe(false)
+  })
   it('script・iframe・イベント属性・ほかのドメインは弾く', () => {
     expect(isSafeAdTag(a8 + '<script src="https://statics.a8.net/a8sales/a8sales.js"></script>')).toBe(false)
     expect(isSafeAdTag('<iframe src="https://px.a8.net/x"></iframe>')).toBe(false)

@@ -1,14 +1,14 @@
 // 広告（アフィリエイト）。2026-10-15 運営者の決定: 無料プランの人にだけ出し、有料プラン（キーが有効）の人には出さない。
 //
 // 従業員のデータ（localStorage）を守るため、広告のスクリプトは一切読み込まない。
-// 使えるのは A8.net・もしもアフィリエイトの「テキスト広告」（<a> と計測用の 1px の <img> だけ）。
-// バナーの JS タグ・「かんたんリンク」（JS で商品を差し込むもの）は使わない（isSafeAdTag が弾く）。
+// 使えるのは A8.net・もしもアフィリエイトの「テキスト広告」と「バナー広告（画像）」だけ（<a> と <img> だけのタグ）。
+// JS のタグ・「かんたんリンク」（JS で商品を差し込むもの）は使わない（isSafeAdTag が弾く）。
 //
 // 出す場所: ホームの一覧の下と、ルールのページの下（src/components/AdSlot.tsx）。
 // 出さない場所: 管理簿・本人へのお知らせ・印刷・設定・取り込み・初回の画面・料金や規約などの静的ページ。
 //
 // 広告を足すとき（運営者）:
-//   1. ASP の管理画面で、掲載サイトに https://yukyu.kokokikaku.com/ を登録して提携し、テキスト広告のタグを取る
+//   1. ASP の管理画面で、掲載サイトに https://yukyu.kokokikaku.com/ を登録して提携し、テキスト広告かバナー広告（画像）のタグを取る
 //   2. 下の AD_ITEMS に貼る。tag の中（URL・rel・アンカーテキスト）は書き換えない（ASP の規約）。
 //      heading と lead はこちらの紹介文。広告主の説明の範囲を超えない（景表法）。断定・最上級を書かない
 //   3. テスト（src/lib/ads.test.ts）が通ること。本番で表示を確かめ、ASP の「広告掲載URL」を提出する
@@ -32,7 +32,29 @@ export type AdItem = {
 export const ADS_ENABLED = true
 
 export const AD_ITEMS: AdItem[] = [
-  // 例（提携してからタグを差し替えて有効にする）:
+  // もしもアフィリエイト（メディア「有休ポン」692885、2026-10-15 提携）。タグは運営者が管理画面からコピーしたもの（書き換えない）
+  {
+    id: 'kintai-cloud',
+    heading: '出退勤の打刻もまとめて管理したくなったら',
+    lead: '有休ポンは有休の管理だけの道具です。打刻や勤怠の集計まで管理したい会社向けに、中小企業向けの勤怠管理システムがあります（30日間の無料体験あり）。',
+    tag: '<a href="//af.moshimo.com/af/c/click?a_id=5850784&p_id=7783&pc_id=22552&pl_id=96899" rel="nofollow" referrerpolicy="no-referrer-when-downgrade" attributionsrc><img src="//image.moshimo.com/af-img/5044/000000096899.png" width="728" height="91" style="border:none;"></a><img src="//i.moshimo.com/af/i/impression?a_id=5850784&p_id=7783&pc_id=22552&pl_id=96899" width="1" height="1" style="border:none;" loading="lazy">',
+    slots: ['home'],
+  },
+  {
+    id: 'relix-kintai',
+    heading: '勤怠管理のシステムを試してみるなら',
+    lead: '有休ポンは有休の管理だけの道具です。打刻や勤怠の集計まで管理したい会社向けの勤怠管理システムです（無料トライアルあり）。',
+    tag: '<a href="//af.moshimo.com/af/c/click?a_id=5850787&p_id=4080&pc_id=10324&pl_id=55929" rel="nofollow" referrerpolicy="no-referrer-when-downgrade" attributionsrc><img src="//image.moshimo.com/af-img/3402/000000055929.jpg" width="120" height="60" style="border:none;"></a><img src="//i.moshimo.com/af/i/impression?a_id=5850787&p_id=4080&pc_id=10324&pl_id=55929" width="1" height="1" style="border:none;" loading="lazy">',
+    slots: ['home'],
+  },
+  {
+    id: 'remoba-roumu',
+    heading: '労務の手続きを任せたいとき',
+    lead: '社会保険・労働保険の手続きなど、労務の作業をオンラインで代行するサービスです。',
+    tag: '<a href="//af.moshimo.com/af/c/click?a_id=5850788&p_id=3772&pc_id=9267&pl_id=52805" rel="nofollow" referrerpolicy="no-referrer-when-downgrade" attributionsrc><img src="//image.moshimo.com/af-img/3204/000000052805.jpg" width="234" height="60" style="border:none;"></a><img src="//i.moshimo.com/af/i/impression?a_id=5850788&p_id=3772&pc_id=9267&pl_id=52805" width="1" height="1" style="border:none;" loading="lazy">',
+    slots: ['guide'],
+  },
+  // 例（A8.net のテキスト広告）:
   // {
   //   id: 'example',
   //   heading: '勤怠の打刻もまとめたくなったら',
@@ -42,11 +64,13 @@ export const AD_ITEMS: AdItem[] = [
   // },
 ]
 
-const LINK_HOSTS = /^https:\/\/(px\.a8\.net|af\.moshimo\.com)\//
-const PIXEL_HOSTS = /^https:\/\/(www\d*\.a8\.net|i\.moshimo\.com)\//
+// https:// か、プロトコル省略の //（https のページでは https になる）だけを許す
+const LINK_HOSTS = /^(https:)?\/\/(px\.a8\.net|af\.moshimo\.com)\//
+// 計測用の 1px 画像と、バナーの画像
+const IMAGE_HOSTS = /^(https:)?\/\/(www\d*\.a8\.net|i\.moshimo\.com|image\.moshimo\.com)\//
 
 /**
- * テキスト広告のタグとして安全か。<a>（ASP の計測リンク）と 1px の <img>（計測）だけを許す。
+ * 広告のタグとして安全か。<a>（ASP の計測リンク）と <img>（バナー画像・計測用の 1px）だけを許す。
  * script・iframe・style・イベント属性・ほかのドメインが入っていたら false。
  */
 export function isSafeAdTag(tag: string): boolean {
@@ -57,12 +81,13 @@ export function isSafeAdTag(tag: string): boolean {
   const hrefs = [...tag.matchAll(/\shref\s*=\s*"([^"]*)"/gi)].map((m) => m[1])
   const srcs = [...tag.matchAll(/\ssrc\s*=\s*"([^"]*)"/gi)].map((m) => m[1])
   if (hrefs.length !== 1 || !LINK_HOSTS.test(hrefs[0])) return false
-  if (srcs.some((s) => !PIXEL_HOSTS.test(s))) return false
+  if (srcs.some((s) => !IMAGE_HOSTS.test(s))) return false
   return true
 }
 
-/** その枠に出す広告。無ければ null（枠ごと出さない） */
-export function pickAd(slot: AdSlotName, items: AdItem[] = AD_ITEMS): AdItem | null {
+/** その枠に出す広告。複数あれば random（0〜1）で1つ選ぶ。無ければ null（枠ごと出さない） */
+export function pickAd(slot: AdSlotName, items: AdItem[] = AD_ITEMS, random = Math.random()): AdItem | null {
   if (!ADS_ENABLED) return null
-  return items.find((a) => a.slots.includes(slot) && isSafeAdTag(a.tag)) ?? null
+  const ok = items.filter((a) => a.slots.includes(slot) && isSafeAdTag(a.tag))
+  return ok.length ? ok[Math.min(ok.length - 1, Math.floor(random * ok.length))] : null
 }
