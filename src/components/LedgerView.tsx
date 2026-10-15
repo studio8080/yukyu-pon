@@ -1,9 +1,10 @@
 import { FileSpreadsheet, Printer } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { parts } from '../lib/dates'
-import type { LeaveRecord } from '../lib/types'
+import { LEAVE_SOURCE_MARK, type LeaveRecord } from '../lib/types'
 import { fmt, fmtDays } from '../lib/dates'
-import { exportExcel, ledgerRows, takenText, type LedgerRange, type LedgerRow } from '../lib/exporter'
+import { leaveSource } from '../lib/engine'
+import { exportExcel, ledgerRows, obligationTakenText, takenText, type LedgerRange, type LedgerRow } from '../lib/exporter'
 import { useStore } from '../store'
 import { NoticeSlips } from './NoticeSlips'
 import { Button, Card, Notice, PageHead } from './ui'
@@ -66,6 +67,7 @@ function Ledger() {
             <p className="text-sm text-slate-600">
               労働者ごとに「基準日・日数・時季（取得した日）」をまとめた帳簿です。保存期間は法律では5年（当分の間は3年）で、いまの設定は<strong>{settings.ledgerRetentionYears}年</strong>です（「設定」で変えられます）。
               管理簿は実際に休んだ日の記録なので、集計日より後の予定は載せません（予定はホームと「本人へのお知らせ」に出ます）。
+              管理簿は、労働者名簿や賃金台帳とあわせて作ることもできます（労基則55条の2）。
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -113,6 +115,7 @@ function Ledger() {
             <h1 className="text-lg font-bold">年次有給休暇管理簿{settings.companyName && `（${settings.companyName}）`}</h1>
             <p className="text-xs">作成日 {fmt(asOf)}・有休ポンで作成</p>
           </div>
+          <p className="text-xs text-slate-500">取得した日の「指定」は会社の時季指定、「計画」は計画的付与。「年5日」の欄の取得日数は、年5日の期間（付与日から1年）で数えた日数です（時間単位は数えません）。</p>
           {groups.map((g) => (
             <Card key={`${g[0].code}${g[0].name}${g[0].hireDate}`} className="print-break !p-0 print:!rounded-none print:!border-slate-400 print:!shadow-none">
               <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-line px-4 py-2">
@@ -149,7 +152,10 @@ function Ledger() {
                           {fmtDays(r.balanceAtEnd)}
                           {r.periodEnd > asOf && <span className="block text-[10px] text-slate-500">現在</span>}
                         </td>
-                        <td className="px-3 py-1.5 text-xs">{r.obligation}</td>
+                        <td className="px-3 py-1.5 text-xs">
+                          {r.obligation}
+                          {r.obligationTaken && <span className="mt-0.5 block text-slate-500">期間の取得 {obligationTakenText(r.obligationTaken)}</span>}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -182,6 +188,7 @@ function DateChips({ dates }: { dates: LeaveRecord[] }) {
             const [, m, day] = parts(d.date)
             const wd = WEEK[new Date(Date.UTC(y, m - 1, day)).getUTCDay()]
             const tag = d.kind === 'am' ? '午前' : d.kind === 'pm' ? '午後' : d.kind === 'hours' ? `${d.hours}h` : ''
+            const mark = LEAVE_SOURCE_MARK[leaveSource(d)]
             return (
               <span
                 key={d.id}
@@ -193,6 +200,7 @@ function DateChips({ dates }: { dates: LeaveRecord[] }) {
                 </span>
                 <span className="text-[10px] text-slate-500">{wd}</span>
                 {tag && <span className="ml-0.5 text-[10px] font-bold text-brand-700">{tag}</span>}
+                {mark && <span className="ml-0.5 rounded bg-ink/5 px-0.5 text-[10px] font-bold text-ink">{mark}</span>}
               </span>
             )
           })}

@@ -1,6 +1,6 @@
 // 読み取った表 → 取り込みの計画（新規・更新・エラー）。画面で確認してから反映する。
 
-import { addMonthsCivil, parseLooseDate, parts, type ISODate } from './dates'
+import { addDays, addMonthsCivil, parseLooseDate, parts, type ISODate } from './dates'
 import { newId } from './defaults'
 import { contractAt, contractLabel, grantSchedule } from './engine'
 import { parseDateList, parseKind, parseNumber, parseOver30, type EmployeeField, type LeaveField, type Table } from './importer'
@@ -126,6 +126,12 @@ export function planEmployees(
       const contracts = changed ? [...found.emp.contracts.filter((c) => c.from < asOf), { ...next, from: found.emp.contracts.length ? asOf : hire }] : found.emp.contracts
       if (changed && found.emp.contracts.length) notes.push(`契約の変更として ${asOf} から反映します`)
       if (found.emp.hireDate !== hire) notes.push(`入社日を ${found.emp.hireDate} → ${hire} に直します`)
+      // 退職のすぐ後の入社日は、定年後の再雇用などで雇用が続いている可能性が高い（昭63.3.14 基発150号: 継続勤務は実態で判断）
+      const r0 = found.emp.retireDate
+      if (r0 && hire > r0 && hire <= addDays(r0, 30))
+        notes.push(
+          `${r0} に退職した人と同じ人です。定年後の再雇用などで間を空けずに雇用が続いているなら、表の入社日を最初の ${found.emp.hireDate} に直してから取り込み、退職日を消して「契約」タブで契約を変更してください（勤続年数と残日数を引き継ぎます）。`,
+        )
       emp = { ...found.emp, name: name || found.emp.name, code: code || found.emp.code, hireDate: hire, retireDate: retire ?? found.emp.retireDate, contracts }
     } else {
       emp = {

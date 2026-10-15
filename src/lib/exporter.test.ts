@@ -2,7 +2,7 @@ import * as XLSX from 'xlsx'
 import { describe, expect, it } from 'vitest'
 import { addDays } from './dates'
 import { defaultSettings } from './defaults'
-import { buildWorkbook, ledgerRows, takenText } from './exporter'
+import { buildWorkbook, datesText, ledgerRows, takenText } from './exporter'
 import { makeSample } from './sample'
 
 describe('管理簿の出力', () => {
@@ -47,6 +47,29 @@ describe('管理簿の出力', () => {
     expect(takenText(r)).toBe('1日＋3時間')
   })
 
+  it('年5日の期間の取得日数と期間を載せる（労基則24条の7。一斉付与で管理簿の期間とずれても、年5日の期間で数える）', () => {
+    const sato = rows.filter((r) => r.name === '佐藤 花子').at(-1)!
+    expect(sato.obligationTaken).toEqual({ taken: 2, from: '2025-11-03', to: '2026-11-02' })
+    const tanaka = rows.filter((r) => r.name === '田中 美咲').at(-1)!
+    expect(tanaka.obligationTaken).toBeNull()
+  })
+
+  it('取得した日に、会社の指定・計画的付与の印を付ける', () => {
+    const ds = [
+      { id: 'a', employeeId: 'x', date: '2026-08-13', kind: 'full' as const, source: 'planned' as const },
+      { id: 'b', employeeId: 'x', date: '2026-08-20', kind: 'am' as const, source: 'designated' as const },
+      { id: 'c', employeeId: 'x', date: '2026-08-21', kind: 'full' as const, note: '計画的付与' },
+      { id: 'd', employeeId: 'x', date: '2026-08-22', kind: 'full' as const, source: 'request' as const },
+    ]
+    expect(datesText(ds)).toBe('2026/08/13［計画］、2026/08/20午前［指定］、2026/08/21［計画］、2026/08/22')
+  })
+
+  it('休職・育休で取らせられなかった記録は、理由を年5日の欄に書く', () => {
+    const e = { ...employees[0], adjustments: { '2024-11-03': { infeasible: { reason: '私傷病で休職' } } } }
+    const r = ledgerRows([e], [], defaultSettings, asOf, 'all', true).find((x) => x.grantDate === '2024-11-03')!
+    expect(r.obligation).toContain('私傷病で休職')
+  })
+
   it('Excel に3枚のシートを作り、読み戻せる', () => {
     const wb = buildWorkbook(XLSX, rows, employees, leaves, { ...defaultSettings, companyName: 'テスト商店' }, asOf)
     expect(wb.SheetNames).toEqual(['管理簿', '残日数', '取得記録'])
@@ -55,5 +78,10 @@ describe('管理簿の出力', () => {
     expect(String(aoa[0][0])).toContain('テスト商店')
     expect(aoa.length).toBe(3 + rows.length)
     expect(String(aoa[3 + rows.findIndex((r) => r.name === '佐藤 花子')][10])).toMatch(/^2022\/11\/23/)
+    expect(aoa[2]).toContain('年5日の期間の取得日数')
+    const last = rows.length - 1 - [...rows].reverse().findIndex((r) => r.name === '佐藤 花子')
+    expect(String(aoa[3 + last][aoa[2].indexOf('年5日の期間の取得日数')])).toBe('2日（2025/11/03〜2026/11/02）')
+    const recs = XLSX.utils.sheet_to_json<string[]>(back.Sheets['取得記録'], { header: 1 })
+    expect(recs[0]).toContain('経緯')
   })
 })

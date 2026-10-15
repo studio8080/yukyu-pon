@@ -31,6 +31,11 @@ export type GrantAdjustment = {
   skipped?: boolean
   /** 出勤率8割以上を確認した */
   attendance?: AttendanceCheck
+  /**
+   * 休職・育休などで、この回の年5日を取らせることができなかった（履行不能）事情の記録。
+   * 期限を過ぎて5日に届かなかった期間を「未達」にせず「判定なし」にする（厚労省パンフ Q13・Q14 を参考にした有休ポンの扱い）
+   */
+  infeasible?: { reason: string }
   note?: string
 }
 
@@ -74,6 +79,22 @@ export type Employee = {
 /** full = 1日、am/pm = 半日（0.5日）、hours = 時間単位 */
 export type LeaveKind = 'full' | 'am' | 'pm' | 'hours'
 
+/** 取得の経緯。request = 本人の請求、designated = 会社の時季指定（39条7項）、planned = 計画的付与（39条6項） */
+export type LeaveSource = 'request' | 'designated' | 'planned'
+
+export const LEAVE_SOURCE_LABEL: Record<LeaveSource, string> = { request: '本人の請求', designated: '会社の指定', planned: '計画的付与' }
+/** 管理簿の取得日に付ける短い印（本人の請求には付けない） */
+export const LEAVE_SOURCE_MARK: Record<LeaveSource, string> = { request: '', designated: '指定', planned: '計画' }
+
+/** 経緯ごとの注意。会社の指定・計画的付与には時間単位を使わない（時季指定は半日単位まで。厚労省パンフ Q3） */
+export const SOURCE_NOTE: Record<LeaveSource, string> = {
+  request: '',
+  designated: '会社が指定する前に、本人の希望を聞いてください（労基則24条の6）。指定は半日単位まで（時間単位は不可）。',
+  planned: '労使協定で決めた日だけ。年休のうち5日を超える分だけが対象です（39条6項）。',
+}
+
+export const NOT_LEAVE_NOTE = '買い上げた日数・特別休暇（慶弔・夏季など）・欠勤は「休んだ日」に入れないでください（年5日に数えられません）。'
+
 export type LeaveRecord = {
   id: string
   employeeId: string
@@ -81,7 +102,9 @@ export type LeaveRecord = {
   kind: LeaveKind
   /** kind = 'hours' のときの時間数（1以上の整数） */
   hours?: number
-  /** 会社が時季指定した・計画的付与 などのメモ */
+  /** 取得の経緯（任意。古い記録には無い。無いときはメモの「時季指定」「計画的付与」で見分ける） */
+  source?: LeaveSource
+  /** メモ */
   note?: string
 }
 
@@ -108,6 +131,12 @@ export type Settings = {
   halfDayEnabled: boolean
   /** 時間単位の年休を使う（労使協定が必要） */
   hourlyEnabled: boolean
+  /** 時間単位をオンにする前に、労使協定と就業規則を確認した日時 */
+  hourlyConfirmedAt?: string
+  /** 年5日の時季指定について、対象者と方法を就業規則に書いたことを確認した日時（任意） */
+  designationRuleConfirmedAt?: string
+  /** ホームの「時季指定の就業規則」の案内を閉じた日時（一度だけ出す） */
+  designationHintClosedAt?: string
   /** 付与日の前後に、出勤率の確認を促す */
   attendanceCheck: boolean
   /** 管理簿の保存年数（労基則24条の7は5年、附則71条で当分の間3年）。利用者が選ぶ */

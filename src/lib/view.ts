@@ -25,7 +25,9 @@ export function windowLabel(w: ObligationWindow | null): string {
     case 'missed':
       return '期限切れ・未達'
     case 'retired':
-      return '退職で対象外'
+      return '退職（5日に届かず・判定なし）'
+    case 'infeasible':
+      return '休職・育休などで取得できず（判定なし）'
     case 'upcoming':
       return '開始前'
     case 'untracked':
@@ -39,5 +41,6 @@ export function windowDetail(w: ObligationWindow): string {
   const range = `${fmt(w.grantDate)}〜${fmt(w.deadline)}`
   const planned = w.planned > 0 ? `（予定 ${fmtDays(w.planned)}）` : ''
   if (w.status === 'active') return `${range}・取得 ${fmtDays(w.taken)}${planned}・${w.untilRetire ? '退職日' : '期限'}まで${w.daysLeft}日`
+  if (w.reason) return `${range}・取得 ${fmtDays(w.taken)}・事情: ${w.reason}`
   return `${range}・取得 ${fmtDays(w.taken)}${planned}`
 }

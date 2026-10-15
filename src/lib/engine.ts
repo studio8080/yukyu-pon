@@ -15,6 +15,7 @@ import {
   type Contract,
   type Employee,
   type LeaveRecord,
+  type LeaveSource,
   type Settings,
 } from './types'
 
@@ -79,6 +80,17 @@ export function recordDays(emp: Employee, r: LeaveRecord): number {
   if (r.kind === 'hours') return round((r.hours ?? 0) / hoursPerDayAt(emp, r.date))
   return FIXED_DAYS[r.kind]
 }
+
+/** 取得の経緯。記録に無ければメモの「計画的付与」「時季指定」で見分け、どちらも無ければ本人の請求とみなす */
+export function leaveSource(r: Pick<LeaveRecord, 'source' | 'note'>): LeaveSource {
+  if (r.source) return r.source
+  const n = r.note ?? ''
+  if (/計画的?付与/.test(n)) return 'planned'
+  if (/時季指定/.test(n)) return 'designated'
+  return 'request'
+}
+
+export const isPlanned = (r: Pick<LeaveRecord, 'source' | 'note'>) => leaveSource(r) === 'planned'
 
 export function statutoryDays(cat: Category, step: number): number {
   if (cat === 0) return 0
@@ -203,8 +215,12 @@ export type LeaveUse = {
   shortfall: number
 }
 
-/** untracked = 管理開始日より前に終わった期間で、記録が足りない（判定しない） */
-export type WindowStatus = 'upcoming' | 'active' | 'done' | 'missed' | 'retired' | 'untracked'
+/**
+ * untracked = 管理開始日より前に終わった期間で、記録が足りない（判定しない）
+ * retired = 期間の途中で退職し、5日に届かなかった（退職後は判定しない）
+ * infeasible = 休職・育休などで取らせることができなかったと記録した（期限後は判定しない）
+ */
+export type WindowStatus = 'upcoming' | 'active' | 'done' | 'missed' | 'retired' | 'untracked' | 'infeasible'
 export type Level = 'red' | 'yellow' | 'ok' | 'done' | 'none'
 
 export type ObligationWindow = {
@@ -220,6 +236,16 @@ export type ObligationWindow = {
   status: WindowStatus
   level: Level
   daysLeft: number
+  /** infeasible のときの事情 */
+  reason?: string
+}
+
+/** 付与の期間ごとに持っている日数（その回の付与＋繰越の残り。期間の初日の時点）。計画的付与の上限を見るのに使う */
+export type Holding = {
+  grantDate: ISODate
+  /** この日の前日まで（次の付与日） */
+  until: ISODate
+  days: number
 }
 
 export type PeriodRow = {
@@ -255,6 +281,8 @@ export type Report = {
   attendanceDue: GrantEvent[]
   /** 集計日の時点の「1日＝何時間」 */
   hoursPerDay: number
+  /** 付与の期間ごとの持ち日数（集計日より後の付与は、予定を引いた見込み） */
+  holdings: Holding[]
   warnings: string[]
 }
 
@@ -350,6 +378,19 @@ export function buildReport(
     }
   }
 
+  // --- 付与の日ごとに、持っている日数（その回＋繰越の残り）を控える（計画的付与の上限の確認用）
+  const held = new Map<ISODate, number>()
+  const pendingGrants = schedule.filter((g) => g.date <= asOf)
+  let pg = 0
+  const snapshotUntil = (date: ISODate) => {
+    while (pg < pendingGrants.length && pendingGrants[pg].date <= date) {
+      const gd = pendingGrants[pg].date
+      expireUntil(gd)
+      held.set(gd, round(lots.filter((l) => l.grantDate <= gd && l.expires > gd).reduce((s, l) => s + l.remaining, 0)))
+      pg++
+    }
+  }
+
   // --- 取得を古い順に引く
   const uses: LeaveUse[] = []
   const seen = new Map<ISODate, number>()
@@ -371,6 +412,7 @@ export function buildReport(
       uses.push({ record: r, amount, deducted: false, shortfall: 0 })
       continue
     }
+    snapshotUntil(r.date)
     expireUntil(r.date)
     let need = amount
     const usable = lots
@@ -390,7 +432,33 @@ export function buildReport(
     if (need > 0) warnings.push(`${fmt(r.date)} の取得の時点で残日数が ${need}日 足りません（欠勤や特別休暇の記録が混ざっていないか確認してください）。`)
     uses.push({ record: r, amount, deducted: true, shortfall: need })
   }
+  snapshotUntil(asOf)
   expireUntil(asOf) // 集計日の時点で時効になった分（expires <= asOf）を消す
+
+  // 集計日より後の付与は、いまの残り＋それまでの付与から、予定の取得を引いて見込む
+  const vlots = lots.filter((l) => l.remaining > 0 && l.expires > asOf).map((l) => ({ grantDate: l.grantDate, expires: l.expires, rem: l.remaining }))
+  const future = uses.filter((u) => !u.deducted && u.record.date > asOf)
+  let fu = 0
+  for (const g of schedule) {
+    if (g.date <= asOf) continue
+    for (; fu < future.length && future[fu].record.date < g.date; fu++) {
+      const d = future[fu].record.date
+      let need = future[fu].amount
+      for (const v of vlots.filter((x) => x.grantDate <= d && x.expires > d).sort((a, b) => (a.grantDate < b.grantDate ? -1 : 1))) {
+        if (need <= 0) break
+        const take = Math.min(v.rem, need)
+        v.rem = round(v.rem - take)
+        need = round(need - take)
+      }
+    }
+    held.set(g.date, round(vlots.filter((v) => v.expires > g.date).reduce((s, v) => s + v.rem, 0) + g.days))
+    if (g.days > 0) vlots.push({ grantDate: g.date, expires: addMonthsCivil(g.date, 24), rem: g.days })
+  }
+  const holdings: Holding[] = schedule.map((g, i) => ({
+    grantDate: g.date,
+    until: schedule[i + 1]?.date ?? addMonthsCivil(g.date, 12),
+    days: held.get(g.date) ?? 0,
+  }))
 
   const balance = round(lots.filter((l) => l.expires > asOf).reduce((s, l) => s + l.remaining, 0))
 
@@ -408,13 +476,17 @@ export function buildReport(
     const taken = round(counted.filter((r) => r.date <= asOf).reduce((s, r) => s + days(r), 0))
     const planned = round(counted.filter((r) => r.date > asOf).reduce((s, r) => s + days(r), 0))
     // 期間の途中で退職する人は、退職日までに5日を取らせる（退職日を先に入れても、在籍中は警告を止めない）。
-    // 退職した後に未達なら判定しない（履行できなかった場合は違反を問わない。厚労省パンフ Q13・Q14）
+    // 退職した後に未達なら判定しない。退職を明示した行政資料は未確認で、厚労省パンフ Q13・Q14（休職・育休で
+    // 履行不能な場合は違反を問わない）を参考にした有休ポンの扱い。画面では「判定なし」と出し、対象外とは言わない
     const quits = !!emp.retireDate && emp.retireDate < addDays(yearEnd, -1)
     const end = quits ? addDays(emp.retireDate!, 1) : yearEnd
     const deadline = addDays(end, -1)
+    const infeasible = emp.adjustments[g.date]?.infeasible
     let status: WindowStatus
     let level: Level = 'none'
     if (quits && asOf > emp.retireDate! && taken < 5) status = 'retired'
+    // 休職・育休で取らせられなかった記録。期間の途中は知らせ続け（途中で復帰したら5日が要る。Q14）、期限後だけ判定しない
+    else if (infeasible && taken < 5 && end <= asOf && g.date <= asOf) status = 'infeasible'
     else if (g.date > asOf) status = 'upcoming'
     else if (taken >= 5) {
       status = 'done'
@@ -443,6 +515,7 @@ export function buildReport(
       status,
       level,
       daysLeft: Math.round((d1 - d0) / 86400000),
+      ...(status === 'infeasible' ? { reason: infeasible!.reason } : {}),
     })
   }
 
@@ -520,6 +593,51 @@ export function buildReport(
     expiringSoon,
     attendanceDue,
     hoursPerDay: hoursPerDayAt(emp, asOf),
+    holdings,
     warnings: [...new Set(warnings)],
   }
+}
+
+// ---------------------------------------------------------------------------
+// 計画的付与の確認（39条6項）
+
+export type PlannedCheck = {
+  ok: boolean
+  /** その日に年休が無い（まだ付与が無い）。年休としては登録できない */
+  noRights: ISODate[]
+  /** この登録で、その付与の期間に自由に使える年休が5日を下回る日 */
+  overFive: ISODate[]
+  /** 退職日より後の日 */
+  afterRetire: ISODate[]
+}
+
+/**
+ * 計画的付与として dates を登録してよいか。計画的付与にできるのは、持っている年休（その回の付与＋繰越）の
+ * うち5日を超える部分だけ（39条6項）。その日を含む付与の期間で「持ち日数 − 同じ期間の計画的付与の合計」が
+ * 5日を下回る日を overFive に入れる。perDay は1日あたりの日数（半休なら0.5）。
+ */
+export function plannedCheck(report: Report, dates: ISODate[], perDay = 1): PlannedCheck {
+  const emp = report.employee
+  const out: PlannedCheck = { ok: true, noRights: [], overFive: [], afterRetire: [] }
+  const existing = report.uses.filter((u) => isPlanned(u.record))
+  const used = new Map<ISODate, number>() // 期間ごとに、これまでに数えた計画的付与
+  for (const d of [...new Set(dates)].sort()) {
+    if (emp.retireDate && d > emp.retireDate) {
+      out.afterRetire.push(d)
+      continue
+    }
+    const h = [...report.holdings].reverse().find((x) => x.grantDate <= d)
+    if (!h || h.days <= 0 || d >= h.until) {
+      out.noRights.push(d)
+      continue
+    }
+    if (!used.has(h.grantDate))
+      used.set(h.grantDate, round(existing.filter((u) => u.record.date >= h.grantDate && u.record.date < h.until).reduce((s, u) => s + u.amount, 0)))
+    if (existing.some((u) => u.record.date === d)) continue // 登録済みの日は二重に数えない
+    const total = round(used.get(h.grantDate)! + perDay)
+    used.set(h.grantDate, total)
+    if (h.days - total < 5) out.overFive.push(d)
+  }
+  out.ok = out.noRights.length + out.overFive.length + out.afterRetire.length === 0
+  return out
 }

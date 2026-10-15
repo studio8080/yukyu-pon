@@ -1,6 +1,6 @@
 import { Printer } from 'lucide-react'
 import { useState } from 'react'
-import { addDays, fmt, fmtBalance } from '../lib/dates'
+import { addDays, fmt, fmtBalance, fmtDays } from '../lib/dates'
 import { useReports } from '../lib/view'
 import { useStore } from '../store'
 import { Button, Card } from './ui'
@@ -21,7 +21,9 @@ export function NoticeSlips() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="font-display text-lg text-ink">本人へのお知らせ</h2>
-            <p className="text-sm text-slate-600">残日数・消える日・次の付与・年5日の進み具合を、1人1枚にまとめて印刷します（A4に3人分。切って渡せます）。</p>
+            <p className="text-sm text-slate-600">
+              残日数・消える日・次の付与・年5日の進み具合を、1人1枚にまとめて印刷します（A4に3人分。切って渡せます）。年5日に届いていない人には、休みたい日を書いてもらう欄が付きます（会社が日を指定する前に希望を聞くため。労基則24条の6）。
+            </p>
           </div>
           <Button variant="primary" disabled={shown.length === 0} onClick={() => window.print()}>
             <Printer size={16} /> 印刷・PDF で保存
@@ -81,17 +83,42 @@ export function NoticeSlips() {
                 </div>
                 <div className="text-sm">
                   <p className="text-xs text-slate-500">次の付与</p>
-                  <p>{r.nextGrant ? `${fmt(r.nextGrant.date)} に ${r.nextGrant.statutory}日（予定）` : '—'}</p>
+                  <p>
+                    {!r.nextGrant
+                      ? '—'
+                      : r.nextGrant.skipped || r.nextGrant.days <= 0
+                        ? `${fmt(r.nextGrant.date)} は付与なし`
+                        : `${fmt(r.nextGrant.date)} に ${fmtDays(r.nextGrant.days)}（出勤率8割以上の場合）`}
+                  </p>
                   {w && (
                     <>
                       <p className="mt-2 text-xs text-slate-500">年5日の取得</p>
                       <p>
-                        {fmt(w.deadline)} までに あと <strong>{w.needed}日</strong>（取得済み {w.taken}日）
+                        {fmt(w.deadline)} までに あと <strong>{fmtDays(w.needed)}</strong>（取得済み {fmtDays(w.taken)}
+                        {w.planned > 0 && `・予定 ${fmtDays(w.planned)}`}）
                       </p>
                     </>
                   )}
                 </div>
               </div>
+              {w && w.needed > w.planned && (
+                <div className="mt-3 rounded-xl border border-dashed border-slate-400 p-3 text-sm">
+                  <p>5日に届くよう、会社から休む日を指定することがあります。その前に希望を聞かせてください。</p>
+                  <p className="mt-2 flex flex-wrap gap-x-5 leading-loose">
+                    <span>希望日:</span>
+                    {[1, 2, 3].map((i) => (
+                      <span key={i} className="whitespace-nowrap">
+                        {'　　月　　日'}
+                      </span>
+                    ))}
+                    <span className="whitespace-nowrap">（　　月　　日までに担当者へ）</span>
+                  </p>
+                  <p className="flex flex-wrap gap-x-5 leading-loose">
+                    <span className="whitespace-nowrap">提出日:　　年　　月　　日</span>
+                    <span className="whitespace-nowrap">氏名:＿＿＿＿＿＿＿＿＿＿</span>
+                  </p>
+                </div>
+              )}
               <p className="mt-3 text-xs text-slate-500">日数に心当たりのない点があれば、担当者に声をかけてください。</p>
             </section>
           )

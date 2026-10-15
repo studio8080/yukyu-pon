@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { addMonthsCivil, fmtBalance, parseLooseDate } from './dates'
-import { buildReport, grantSchedule } from './engine'
+import { addDays, addMonthsCivil, fmtBalance, parseLooseDate } from './dates'
+import { buildReport, grantSchedule, isPlanned, plannedCheck } from './engine'
 import { defaultSettings } from './defaults'
 import type { Employee, LeaveRecord, Settings } from './types'
 
@@ -252,11 +252,12 @@ describe('年5日の取得義務', () => {
     expect(r.focus?.taken).toBe(2)
     expect(r.focus?.planned).toBe(2)
   })
-  it('期間の途中で退職したら対象外', () => {
+  it('期間の途中で退職し、5日に届かなかった期間は判定しない（退職後）', () => {
     const r = buildReport({ ...e, retireDate: '2025-03-31' }, ls, S(), '2025-09-01')
     expect(r.windows[0].status).toBe('retired')
+    expect(r.missed).toEqual([])
   })
-  it('退職日を先に入れても、在籍中は退職日を期限として知らせる（パンフ Q13・14: 履行できないときだけ違反を問わない）', () => {
+  it('退職日を先に入れても、在籍中は退職日を期限として知らせる（パンフ Q13・Q14（休職・育休で履行不能な場合）を参考にした有休ポンの扱い）', () => {
     const quitting = { ...e, retireDate: '2025-08-31' }
     const before = buildReport(quitting, ls, S(), '2025-07-15')
     expect(before.windows[0].status).toBe('active')
@@ -265,6 +266,20 @@ describe('年5日の取得義務', () => {
     expect(before.focus?.needed).toBe(3)
     expect(buildReport(quitting, ls, S(), '2025-08-05').level).toBe('red')
     expect(buildReport(quitting, ls, S(), '2025-09-01').windows[0].status).toBe('retired')
+  })
+  it('休職・育休で取らせられなかった記録があれば、期限を過ぎても未達にしない（パンフ Q13・Q14 を参考にした有休ポンの扱い）', () => {
+    const e1 = { ...e, adjustments: { '2024-10-01': { infeasible: { reason: '育児休業で期間中ずっと休業' } } } }
+    const after = buildReport(e1, ls, S(), '2025-10-01')
+    expect(after.windows[0].status).toBe('infeasible')
+    expect(after.windows[0].level).toBe('none')
+    expect(after.missed).toEqual([])
+    // 期間の途中は、記録があっても知らせ続ける（途中で復帰したら5日が要る。Q14）
+    const during = buildReport(e1, ls, S(), '2025-09-01')
+    expect(during.windows[0].status).toBe('active')
+    expect(during.level).toBe('red')
+    // 5日取れていれば達成のまま
+    const five = [...ls, leave('2025-06-02'), leave('2025-06-03'), leave('2025-06-04')]
+    expect(buildReport(e1, five, S(), '2025-10-01').windows[0].status).toBe('done')
   })
   it('残日数が足りない取得は、年休ではないので5日に数えない', () => {
     const many = Array.from({ length: 12 }, (_, i) => leave(`2024-11-${String(i + 1).padStart(2, '0')}`))
@@ -326,5 +341,65 @@ describe('出勤率の確認', () => {
   })
   it('設定で切れば知らせない', () => {
     expect(buildReport(e, [], S({ attendanceCheck: false }), '2024-09-15').attendanceDue).toEqual([])
+  })
+})
+
+describe('計画的付与の確認（39条6項: 5日を超える部分だけ）', () => {
+  const days = (from: string, n: number) => Array.from({ length: n }, (_, i) => addDays(from, i))
+  const planned = (date: string, how: 'source' | 'note' = 'source'): LeaveRecord =>
+    how === 'source' ? { id: date + 'p', employeeId: 'e1', date, kind: 'full', source: 'planned' } : { id: date + 'n', employeeId: 'e1', date, kind: 'full', note: '計画的付与' }
+
+  it('計画的付与の記録は、経緯（source）か、メモの「計画的付与」で見分ける', () => {
+    expect(isPlanned(planned('2025-01-01'))).toBe(true)
+    expect(isPlanned(planned('2025-01-01', 'note'))).toBe(true)
+    expect(isPlanned({ ...planned('2025-01-01', 'note'), source: 'request' })).toBe(false)
+    expect(isPlanned(leave('2025-01-01'))).toBe(false)
+  })
+  it('まだ付与が無い人（入社6か月前）は、年休として登録できない', () => {
+    const r = buildReport(emp({ hireDate: '2026-06-01' }), [], S(), '2026-08-01')
+    expect(plannedCheck(r, ['2026-08-13', '2026-08-14'])).toEqual({ ok: false, noRights: ['2026-08-13', '2026-08-14'], overFive: [], afterRetire: [] })
+  })
+  it('10日の人は5日まで。6日目からは、自由に使える日が5日を下回る', () => {
+    const r = buildReport(emp({ hireDate: '2024-04-01' }), [], S(), '2024-11-01')
+    expect(plannedCheck(r, days('2024-12-25', 5))).toEqual({ ok: true, noRights: [], overFive: [], afterRetire: [] })
+    expect(plannedCheck(r, days('2024-12-25', 6)).overFive).toEqual(['2024-12-30'])
+  })
+  it('半日で登録するときは0.5日ずつ数える', () => {
+    const r = buildReport(emp({ hireDate: '2024-04-01' }), [], S(), '2024-11-01')
+    expect(plannedCheck(r, days('2024-12-20', 10), 0.5).ok).toBe(true)
+    expect(plannedCheck(r, days('2024-12-20', 11), 0.5).overFive).toEqual(['2024-12-30'])
+  })
+  it('比例付与で5日の人は、計画的付与にできる日が無い', () => {
+    const p = emp({ hireDate: '2024-04-01', contracts: [{ from: '2024-04-01', daysPerWeek: 3, over30h: false }] })
+    const r = buildReport(p, [], S(), '2024-11-01')
+    expect(plannedCheck(r, ['2024-12-28']).overFive).toEqual(['2024-12-28'])
+  })
+  it('前年からの繰越分も含めて数える（10日繰越＋11日＝21日なら16日まで）', () => {
+    const r = buildReport(emp({ hireDate: '2023-04-01' }), [], S(), '2024-11-01')
+    expect(plannedCheck(r, days('2024-12-01', 16)).ok).toBe(true)
+    expect(plannedCheck(r, days('2024-12-01', 17)).overFive).toEqual(['2024-12-17'])
+  })
+  it('同じ期間にすでにある計画的付与（メモの記録も）と合わせて数える', () => {
+    const before = [planned('2024-11-05'), planned('2024-11-06', 'note'), leave('2024-11-07')]
+    const r = buildReport(emp({ hireDate: '2024-04-01' }), before, S(), '2024-11-10')
+    // 10日 − 本人の取得1日は関係なく、計画的付与の合計で見る: 既存2日＋新しく3日 = 5日
+    expect(plannedCheck(r, days('2024-12-25', 3)).ok).toBe(true)
+    expect(plannedCheck(r, days('2024-12-25', 4)).overFive).toEqual(['2024-12-28'])
+    // 登録済みの日をもう一度選んでも、二重に数えない
+    expect(plannedCheck(r, ['2024-11-05', ...days('2024-12-25', 3)]).ok).toBe(true)
+  })
+  it('次の付与より後の日は、次の付与＋繰越（それまでの予定を引いた残り）で見る', () => {
+    const e = emp({ hireDate: '2024-04-01' }) // 2024-10-01 に10日、2025-10-01 に11日
+    const r = buildReport(e, [], S(), '2025-08-01')
+    expect(plannedCheck(r, days('2025-08-11', 6)).overFive).toEqual(['2025-08-16'])
+    expect(plannedCheck(r, days('2025-12-01', 16)).ok).toBe(true)
+    // 次の付与までに5日の予定（本人の請求）があると、繰越は5日になる → 11＋5＝16日、計画的付与は11日まで
+    const r2 = buildReport(e, days('2025-09-01', 5).map((d) => leave(d)), S(), '2025-08-01')
+    expect(plannedCheck(r2, days('2025-12-01', 11)).ok).toBe(true)
+    expect(plannedCheck(r2, days('2025-12-01', 12)).overFive).toEqual(['2025-12-12'])
+  })
+  it('退職日より後の日は登録しない', () => {
+    const r = buildReport(emp({ hireDate: '2024-04-01', retireDate: '2024-12-26' }), [], S(), '2024-11-01')
+    expect(plannedCheck(r, ['2024-12-26', '2024-12-27'])).toEqual({ ok: false, noRights: [], overFive: [], afterRetire: ['2024-12-27'] })
   })
 })

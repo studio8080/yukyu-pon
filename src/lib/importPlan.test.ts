@@ -50,3 +50,18 @@ describe('名簿の取り込み（更新）', () => {
     expect(row.employee?.contracts).toEqual([{ from: '2026-04-01', daysPerWeek: 5, over30h: true }])
   })
 })
+
+describe('名簿の取り込み（再雇用の注意）', () => {
+  const retired: Employee = { ...part, id: 'r1', code: '', name: '山田 太郎', hireDate: '2001-04-01', retireDate: '2026-03-31', contracts: [{ from: '2001-04-01', daysPerWeek: 5, over30h: true }] }
+  it('退職した人と同じ氏名で、退職日の翌日から30日以内の入社日なら、同じ人として続けるよう注意する', () => {
+    const [row] = planEmployees([['氏名', '入社日'], ['山田 太郎', '2026/4/1']], 0, { name: 0, hire: 1 }, [retired], defaultSettings, asOf)
+    expect(row.notes.join()).toContain('再雇用')
+    expect(row.notes.join()).toContain('2001-04-01')
+  })
+  it('間が30日を超えるとき・入社日が同じときは注意しない', () => {
+    const [far] = planEmployees([['氏名', '入社日'], ['山田 太郎', '2026/6/1']], 0, { name: 0, hire: 1 }, [retired], defaultSettings, asOf)
+    expect(far.notes.join()).not.toContain('再雇用')
+    const [same] = planEmployees([['氏名', '入社日'], ['山田 太郎', '2001/4/1']], 0, { name: 0, hire: 1 }, [retired], defaultSettings, asOf)
+    expect(same.notes.join()).not.toContain('再雇用')
+  })
+})

@@ -50,6 +50,7 @@ export function SettingsView() {
   const [mm, dd] = s.uniformMonthDay.split('-').map(Number)
   const set = (p: Partial<Settings>) => upd(p)
   const [confirmUniform, setConfirmUniform] = useState(false)
+  const [confirmHourly, setConfirmHourly] = useState(false)
 
   return (
     <div className="space-y-4">
@@ -123,7 +124,7 @@ export function SettingsView() {
               <option value="newest">新しい付与分から</option>
             </select>
           </Field>
-          <Field label="年5日の警告" hint="期限までの残りがこの月数を切ったら色を変えます。">
+          <Field label="年5日の警告" hint="期限までの残りがこの月数を切ったら色を変えます。黄を6か月（付与から半年）にすると、厚生労働省の解説の例（半年たっても5日に届かない人に日を指定する）と同じ時期に気づけます。">
             <div className="flex flex-wrap items-center gap-2 text-sm">
               赤
               <select className={`${inputCls} !w-auto`} value={s.redMonths} onChange={(e) => set({ redMonths: Number(e.target.value) })}>
@@ -153,25 +154,48 @@ export function SettingsView() {
             </select>
           </Field>
         </div>
+
+        <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-2xl border border-line p-3 hover:bg-paper">
+          <input
+            type="checkbox"
+            className="mt-1 h-4 w-4 shrink-0 accent-brand-500"
+            checked={!!s.designationRuleConfirmedAt}
+            onChange={(e) => set({ designationRuleConfirmedAt: e.target.checked ? new Date().toISOString() : undefined })}
+          />
+          <span>
+            <span className="block font-bold text-ink">年5日の時季指定について、対象者と指定の方法を就業規則に書いた</span>
+            <span className="block text-sm text-slate-600">
+              5日に届きそうにない人に会社が日を指定するには、対象者と指定の方法を就業規則に書いておく必要があります（89条）。指定の前には本人の希望を聞き、できるだけ希望に沿うよう努めます（労基則24条の6）。チェックしなくても使えます。
+              {s.designationRuleConfirmedAt && `（${fmt(s.designationRuleConfirmedAt.slice(0, 10))} に確認）`}
+            </span>
+          </span>
+        </label>
       </Card>
 
       <Card>
         <h2 className="mb-3 font-display text-lg text-ink">取得の単位と確認</h2>
         <div className="grid gap-2 md:grid-cols-3">
-          <Toggle checked={s.halfDayEnabled} onChange={(v) => set({ halfDayEnabled: v })} label="半日単位（半休）を使う" desc="午前・午後を0.5日で数えます。年5日の義務にも0.5日として数えます。" />
+          <Toggle
+            checked={s.halfDayEnabled}
+            onChange={(v) => set({ halfDayEnabled: v })}
+            label="半日単位（半休）を使う"
+            desc="法律上の義務ではなく、本人の希望と会社の同意で使えます。半休の時間帯などは就業規則に書いておきます。午前・午後を0.5日で数え、年5日にも0.5日として数えます。"
+          />
           <Toggle
             checked={s.hourlyEnabled}
-            onChange={(v) => set({ hourlyEnabled: v })}
+            onChange={(v) => (v && !s.hourlyConfirmedAt ? setConfirmHourly(true) : set({ hourlyEnabled: v }))}
             label="時間単位の年休を使う"
-            desc="労使協定が必要です。1年に5日分まで。残日数からは引きますが、年5日の義務には数えません。"
+            desc="就業規則への記載と労使協定が必要です（労基署への届出は不要）。1年に5日分まで。会社の時季指定には使えず、年5日の義務にも数えません。"
           />
           <Toggle checked={s.attendanceCheck} onChange={(v) => set({ attendanceCheck: v })} label="付与の前に出勤率の確認を促す" desc="付与日の1か月前から、出勤率8割以上かの確認をホームに出します。" />
         </div>
         {s.hourlyEnabled && (
           <p className="mt-2 text-xs text-slate-500">
             「1日＝何時間」は各人の契約の「1日の所定労働時間」で決めます（従業員の「契約」タブ。1時間未満は切り上げ（厚生労働省の解説）。既定は8時間）。日によって時間が違う人は、1年の平均を入れてください。
+            {s.hourlyConfirmedAt && ` 労使協定・就業規則の確認: ${fmt(s.hourlyConfirmedAt.slice(0, 10))}`}
           </p>
         )}
+        <HourlyConfirm open={confirmHourly} onClose={() => setConfirmHourly(false)} />
       </Card>
 
       <BackupCard />
@@ -211,6 +235,41 @@ function UniformConfirm({ open, onClose }: { open: boolean; onClose: () => void 
             }}
           >
             確認したので一斉付与にする
+          </Button>
+          <Button onClick={onClose}>やめる</Button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+/** 時間単位の年休をオンにする前に、労使協定と就業規則を確かめてもらう（厚生労働省の時間単位年休のリーフレット） */
+function HourlyConfirm({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [checks, setChecks] = useState([false, false])
+  const items = [
+    '時間単位の年休について労使協定を結んでいる（①対象者の範囲（取得の目的では絞れません）②日数（年5日以内）③1日分の時間数（1時間未満は切り上げ）④1時間以外の単位にするなら、その時間数）。協定の労基署への届出は不要です',
+    '就業規則に、時間単位の年休のことを書いた',
+  ]
+  return (
+    <Modal open={open} onClose={onClose} title="時間単位の年休を使う前に確認してください">
+      <div className="space-y-3 text-sm">
+        <p>時間単位の年休は、労使協定を結び、就業規則に書いたうえで使えます。会社の時季指定には時間単位を使えず、時間単位で取った分は年5日の義務にも数えません。</p>
+        {items.map((t, i) => (
+          <label key={i} className="flex items-start gap-2">
+            <input type="checkbox" className="mt-1 h-4 w-4 shrink-0 accent-brand-500" checked={checks[i]} onChange={(e) => setChecks(checks.map((c, j) => (j === i ? e.target.checked : c)))} />
+            <span>{t}</span>
+          </label>
+        ))}
+        <div className="flex gap-2">
+          <Button
+            variant="primary"
+            disabled={!checks.every(Boolean)}
+            onClick={() => {
+              useStore.getState().updateSettings({ hourlyEnabled: true, hourlyConfirmedAt: new Date().toISOString() })
+              onClose()
+            }}
+          >
+            確認したので使う
           </Button>
           <Button onClick={onClose}>やめる</Button>
         </div>

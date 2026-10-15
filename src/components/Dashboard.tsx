@@ -18,6 +18,7 @@ type Filter = 'all' | 'action' | 'active' | 'retired'
 export function Dashboard({ onOpen, onNavigate }: { onOpen: (id: string) => void; onNavigate: (tab: string) => void }) {
   const reports = useReports()
   const asOf = useStore((s) => s.asOf)
+  const settings = useStore((s) => s.settings)
   const [filter, setFilter] = useState<Filter>('active')
   const plan = usePlan()
   const [att, setAtt] = useState<{ emp: Employee; grant: GrantEvent } | null>(null)
@@ -97,6 +98,24 @@ export function Dashboard({ onOpen, onNavigate }: { onOpen: (id: string) => void
           {due.length > 8 && <p className="mt-2 text-xs text-brand-900">ほか {due.length - 8}件。各人の「付与と5日」からも確認できます。</p>}
           <AttendanceDialog emp={att?.emp ?? null} grant={att?.grant ?? null} onClose={() => setAtt(null)} />
         </section>
+      )}
+      {!settings.designationRuleConfirmedAt && !settings.designationHintClosedAt && reports.some((r) => r.active && r.windows.length > 0) && (
+        <div className="flex flex-col gap-2 rounded-2xl border border-line bg-white px-4 py-3 text-sm leading-relaxed text-slate-700 sm:flex-row sm:items-start sm:gap-3">
+          <p className="flex min-w-0 flex-1 gap-2">
+            <ClipboardCheck size={16} className="mt-1 shrink-0 text-brand-600" aria-hidden />
+            <span>
+              5日に届きそうにない人に会社が日を指定するには、対象者と指定の方法を就業規則に書いておく必要があります（89条）。指定の前には本人の希望を聞きます（労基則24条の6）。設定の「会社のルール」で確認を記録できます。
+            </span>
+          </p>
+          <span className="flex shrink-0 gap-2 pl-6 sm:pl-0">
+            <Button size="sm" onClick={() => onNavigate('settings')}>
+              設定を開く
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => useStore.getState().updateSettings({ designationHintClosedAt: new Date().toISOString() })}>
+              閉じる
+            </Button>
+          </span>
+        </div>
       )}
       {stats.warnings > 0 && (
         <p className="flex items-center gap-2 rounded-2xl bg-sun-100 px-4 py-3 text-sm text-sun-700">

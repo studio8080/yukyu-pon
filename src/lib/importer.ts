@@ -12,7 +12,7 @@ export type LeaveField = 'name' | 'code' | 'date' | 'kind'
 
 export const EMPLOYEE_FIELDS: { key: EmployeeField; label: string; required?: boolean; hint: string }[] = [
   { key: 'name', label: '氏名', required: true, hint: '' },
-  { key: 'hire', label: '入社日', required: true, hint: '2023/4/1、R5.4.1 なども読めます' },
+  { key: 'hire', label: '入社日', required: true, hint: '最初に雇い入れた日（正社員登用日・再雇用日ではなく）。2023/4/1、R5.4.1 なども読めます' },
   { key: 'days', label: '週の勤務日数', hint: '空なら週5日' },
   { key: 'hours', label: '週の労働時間', hint: '30以上なら通常の付与。「○」「はい」でも可' },
   { key: 'annual', label: '年間の勤務日数', hint: 'シフト制で週の日数が決まっていない人だけ' },

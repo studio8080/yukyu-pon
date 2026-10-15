@@ -164,6 +164,9 @@ export function ImportView({ onDone }: { onDone: () => void }) {
               <p>
                 必要な列は<strong>氏名・入社日</strong>だけ。<strong>週の勤務日数</strong>（空なら週5日）と<strong>週の労働時間</strong>があるとパートの比例付与を正しく判定できます。
                 Excel から引っ越すときは<strong>今の残日数</strong>の列も入れてください。同じ名前（または社員番号）の人は上書きします。
+                <span className="mt-2 block">
+                  入社日の列が「正社員登用日」や「再雇用日」になっていないか確かめてください。入社日は<strong>最初に雇い入れた日</strong>（試用期間の初日）です。契約の更新・パートから正社員への切替・定年後の再雇用でも、雇用が続いていれば最初の日のままにします。
+                </span>
               </p>
             ) : (
               <p>

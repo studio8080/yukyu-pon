@@ -3,12 +3,12 @@ import { useMemo, useState } from 'react'
 import { addDays, fmt, fmtBalance, fmtDays, isISODate, type ISODate } from '../lib/dates'
 import { newId } from '../lib/defaults'
 import { makePhoto } from '../lib/photo'
-import { buildReport, categoryLabel, categoryOf, contractLabel, TENURE_LABEL, type GrantEvent } from '../lib/engine'
-import { leaveLabel, type Contract, type Employee, type LeaveKind } from '../lib/types'
+import { buildReport, categoryLabel, categoryOf, contractLabel, leaveSource, TENURE_LABEL, type GrantEvent, type ObligationWindow } from '../lib/engine'
+import { leaveLabel, LEAVE_SOURCE_LABEL, NOT_LEAVE_NOTE, SOURCE_NOTE, type Contract, type Employee, type GrantAdjustment, type LeaveKind, type LeaveSource } from '../lib/types'
 import { windowDetail, windowLabel } from '../lib/view'
 import { useStore } from '../store'
 import { AttendanceDialog } from './AttendanceDialog'
-import { KindPicker } from './LeaveEntry'
+import { KindPicker, SourcePicker } from './LeaveEntry'
 import { Avatar, Badge, Button, Field, inputCls, Modal, Notice } from './ui'
 
 type Tab = 'basic' | 'contract' | 'grants' | 'leaves' | 'balance'
@@ -126,7 +126,10 @@ function Basic({ emp, onDeleted }: { emp: Employee; onDeleted: () => void }) {
       <Field label="社員番号（任意）">
         <input className={inputCls} value={emp.code} onChange={(e) => set({ code: e.target.value })} />
       </Field>
-      <Field label="入社日" hint="雇い入れた日。最初の付与はこの6か月後です（会社のルールで前倒しもできます）。">
+      <Field
+        label="入社日"
+        hint="最初に雇い入れた日（試用期間の初日）。契約の更新・パートから正社員への切替・定年後の再雇用・在籍出向でも、実態として雇用が続いていれば最初の日のままにします（昭63.3.14 基発150号）。最初の付与はこの6か月後です（会社のルールで前倒しもできます）。"
+      >
         <input
           type="date"
           className={inputCls}
@@ -142,7 +145,10 @@ function Basic({ emp, onDeleted }: { emp: Employee; onDeleted: () => void }) {
           }}
         />
       </Field>
-      <Field label="退職日（任意）" hint="最後に在籍した日。これより後は付与しません。">
+      <Field
+        label="退職日（任意）"
+        hint="最後に在籍した日。これより後は付与しません。定年後に引き続き再雇用する人や契約を更新する人は、退職日を入れず「契約」タブで契約を変更してください。間を空けずに再雇用した場合、残日数と勤続年数は引き継がれます。"
+      >
         <input type="date" className={inputCls} value={emp.retireDate ?? ''} onChange={(e) => set({ retireDate: e.target.value || null })} />
       </Field>
       <Field label="メモ" className="sm:col-span-2">
@@ -221,6 +227,10 @@ function ContractInputs({ c, onChange }: { c: Contract; onChange: (c: Contract) 
   )
 }
 
+/** シフト制で、年間の所定労働日数が決まっていない人の数え方（厚生労働省・労働局のシフト制の資料） */
+const SHIFT_NOTE =
+  '年間の所定労働日数が決まっていない人は、初回（入社6か月後）は入社から6か月の出勤予定日数の実績×2、2回目以降は前の1年の実績を入れてください（厚生労働省・労働局のシフト制の資料）。契約で「週4日程度」などの目安を決めていて、その方が日数が多くなるなら目安で計算できます。付与日ごとに「契約を変更する」で、その付与日から有効な行を足してください。'
+
 function Contracts({ emp }: { emp: Employee }) {
   const update = useStore((s) => s.updateEmployee)
   const asOf = useStore((s) => s.asOf)
@@ -256,6 +266,7 @@ function Contracts({ emp }: { emp: Employee }) {
             </div>
             <ContractInputs c={c} onChange={(nc) => setList(list.map((x, j) => (j === i ? nc : x)))} />
             <p className="mt-2 text-xs text-slate-500">付与の区分: {categoryLabel(categoryOf(c))}</p>
+            {c.daysPerWeek === 0 && <p className="mt-1 text-xs leading-relaxed text-slate-600">{SHIFT_NOTE}</p>}
           </li>
         ))}
       </ol>
@@ -271,16 +282,26 @@ function Contracts({ emp }: { emp: Employee }) {
       <p className="text-xs text-slate-500">
         {useStore.getState().settings.hourlyEnabled && '1日の時間は、時間単位の年休で「1日＝何時間」とみなすのに使います（7.5時間なら8時間に切り上げ）。'}
         判定: 週5日以上、または週30時間以上 → 通常の付与（10日〜）。週4日以下かつ30時間未満 → 比例付与。シフト制で週の日数が決まっていない人は年間の所定労働日数で判定します（217日以上は通常）。
+        所定労働日数を決めていないことを理由に、年休を付与しないことはできません。
       </p>
     </div>
   )
+}
+
+/** 手動調整を1つ差し替える。中身が空になったら消す（出勤率の確認・事情の記録が残っていれば消さない） */
+function putAdj(all: Employee['adjustments'], date: ISODate, cur: GrantAdjustment): Employee['adjustments'] {
+  const out = { ...all }
+  const empty = cur.days == null && !cur.skipped && !cur.note && !cur.attendance && !cur.infeasible
+  if (empty) delete out[date]
+  else out[date] = cur
+  return out
 }
 
 function Grants({ emp }: { emp: Employee }) {
   const r = useReport(emp)
   const update = useStore((s) => s.updateEmployee)
   const rows = r.schedule.filter((g, i) => g.date <= r.asOf || i === r.schedule.findIndex((x) => x.date > r.asOf))
-  const setAdj = (date: ISODate, p: { days?: number | null; skipped?: boolean; note?: string }) =>
+  const setAdj = (date: ISODate, p: { days?: number | null; skipped?: boolean; note?: string; infeasible?: GrantAdjustment['infeasible'] | null }) =>
     update(emp.id, (e) => {
       const cur = { ...(e.adjustments[date] ?? {}) }
       if ('days' in p) {
@@ -289,10 +310,11 @@ function Grants({ emp }: { emp: Employee }) {
       }
       if ('skipped' in p) cur.skipped = p.skipped || undefined
       if ('note' in p) cur.note = p.note || undefined
-      const adjustments = { ...e.adjustments }
-      if (cur.days == null && !cur.skipped && !cur.note) delete adjustments[date]
-      else adjustments[date] = cur
-      return { ...e, adjustments }
+      if ('infeasible' in p) {
+        if (p.infeasible) cur.infeasible = p.infeasible
+        else delete cur.infeasible
+      }
+      return { ...e, adjustments: putAdj(e.adjustments, date, cur) }
     })
   const winOf = (date: ISODate) => r.windows.find((w) => w.grantDate === date)
   const [att, setAtt] = useState<GrantEvent | null>(null)
@@ -300,11 +322,9 @@ function Grants({ emp }: { emp: Employee }) {
     update(emp.id, (e) => {
       const cur = { ...(e.adjustments[date] ?? {}) }
       delete cur.attendance
-      const adjustments = { ...e.adjustments }
-      if (cur.days == null && !cur.skipped && !cur.note) delete adjustments[date]
-      else adjustments[date] = cur
-      return { ...e, adjustments }
+      return { ...e, adjustments: putAdj(e.adjustments, date, cur) }
     })
+  const ended = r.windows.filter((w) => w.status === 'missed' || w.status === 'infeasible')
 
   return (
     <div className="space-y-4">
@@ -399,10 +419,50 @@ function Grants({ emp }: { emp: Employee }) {
       <ul className="list-disc space-y-1 pl-5 text-xs text-slate-600">
         <li>付与日数は自動計算です。会社独自に多く付与するときだけ、数字を書き換えてください（黄色になります）。法定より少なくはできません。</li>
         <li>付与の前に「確認する」で出勤率8割以上かを確かめて記録します。8割未満なら、その回は付与なしになります（勤続年数は進みます）。</li>
-        <li>年5日の義務は、法定の付与が10日以上の回だけにかかります（パートの比例付与で10日未満なら対象外）。</li>
+        <li>年5日の義務は、法定の付与が10日以上の回だけにかかります（パートの比例付与で10日未満なら対象外）。管理監督者・パート・有期契約の人も、10日以上なら対象です。</li>
       </ul>
+      {ended.length > 0 && (
+        <div className="rounded-2xl border border-line p-3">
+          <h3 className="mb-1 font-bold text-ink">5日に届かなかった期間の事情</h3>
+          <p className="mb-3 text-xs leading-relaxed text-slate-600">
+            休職が続いて一度も復職しなかった場合など、取らせることが不可能だった場合は違反を問わない、と厚生労働省は説明しています（年5日の解説 Q13）。育児休業から途中で復帰した人は、残りの労働日が足りない場合を除き5日が必要です（Q14）。
+            当てはまるときだけ記録してください。記録すると「判定なし」になり、管理簿に事情を書きます。
+          </p>
+          <ul className="space-y-2">
+            {ended.map((w) => (
+              <InfeasibleRow key={w.grantDate} w={w} onSave={(reason) => setAdj(w.grantDate, { infeasible: reason ? { reason } : null })} />
+            ))}
+          </ul>
+        </div>
+      )}
       <ExtraGrants emp={emp} />
     </div>
+  )
+}
+
+function InfeasibleRow({ w, onSave }: { w: ObligationWindow; onSave: (reason: string) => void }) {
+  const [reason, setReason] = useState(w.reason ?? '')
+  return (
+    <li className="flex flex-wrap items-center gap-2 text-sm">
+      <span className="tabular">
+        {fmt(w.grantDate)}〜{fmt(w.deadline)}・取得 {fmtDays(w.taken)}
+      </span>
+      {w.status === 'infeasible' ? (
+        <>
+          <span className="text-slate-600">事情: {w.reason}</span>
+          <Button size="sm" variant="ghost" onClick={() => onSave('')}>
+            記録を消す
+          </Button>
+        </>
+      ) : (
+        <>
+          <input className={`${inputCls} !w-64 !py-1`} placeholder="例: 育児休業で期間中ずっと休業" value={reason} onChange={(e) => setReason(e.target.value)} aria-label="取らせることができなかった事情" />
+          <Button size="sm" disabled={!reason.trim()} onClick={() => onSave(reason.trim())}>
+            休職・育休で取らせることができなかった
+          </Button>
+        </>
+      )}
+    </li>
   )
 }
 
@@ -458,6 +518,7 @@ function Leaves({ emp }: { emp: Employee }) {
   const [date, setDate] = useState(asOf)
   const [kind, setKind] = useState<LeaveKind>('full')
   const [hours, setHours] = useState(1)
+  const [source, setSource] = useState<LeaveSource>('request')
   const settings = useStore((s) => s.settings)
   const [note, setNote] = useState('')
   const [dupMsg, setDupMsg] = useState('')
@@ -474,26 +535,38 @@ function Leaves({ emp }: { emp: Employee }) {
             kind={kind}
             hours={hours}
             settings={settings}
+            noHours={source !== 'request'}
             onChange={(k, h) => {
               setKind(k)
               setHours(h)
             }}
           />
         </div>
+        <div>
+          <span className="mb-1 block text-sm font-medium text-slate-700">経緯</span>
+          <SourcePicker
+            source={source}
+            onChange={(v) => {
+              setSource(v)
+              if (v !== 'request' && kind === 'hours') setKind('full')
+            }}
+          />
+        </div>
         <Field label="メモ（任意）">
-          <input className={`${inputCls} !w-44`} placeholder="時季指定・計画付与など" value={note} onChange={(e) => setNote(e.target.value)} />
+          <input className={`${inputCls} !w-44`} placeholder="例: 指定日を変更" value={note} onChange={(e) => setNote(e.target.value)} />
         </Field>
         <Button
           variant="primary"
           disabled={!isISODate(date)}
           onClick={() => {
-            const n = useStore.getState().addLeaves([{ employeeId: emp.id, date, kind, ...(kind === 'hours' ? { hours } : {}), note: note || undefined }])
+            const n = useStore.getState().addLeaves([{ employeeId: emp.id, date, kind, ...(kind === 'hours' ? { hours } : {}), source, note: note || undefined }])
             setDupMsg(n === 0 ? `${fmt(date)} の同じ区分の記録はもうあります（追加していません）。` : '')
             setNote('')
           }}
         >
           <Plus size={16} /> 追加
         </Button>
+        {SOURCE_NOTE[source] && <p className="w-full text-xs leading-relaxed text-slate-600">{SOURCE_NOTE[source]}</p>}
         {dupMsg && (
           <p className="w-full text-sm text-slate-600" role="status">
             {dupMsg}
@@ -511,6 +584,7 @@ function Leaves({ emp }: { emp: Employee }) {
                 <span className="ml-2 text-slate-600">{leaveLabel(l)}</span>
                 {l.date > asOf && <span className="ml-2 rounded bg-sky-50 px-1.5 text-xs text-sky-800">予定</span>}
                 {shortfall.has(l.id) && <span className="ml-2 rounded bg-amber-100 px-1.5 text-xs text-sun-700">残日数不足</span>}
+                {leaveSource(l) !== 'request' && <span className="ml-2 rounded bg-brand-50 px-1.5 text-xs text-brand-800">{LEAVE_SOURCE_LABEL[leaveSource(l)]}</span>}
                 {l.note && <span className="ml-2 text-slate-500">{l.note}</span>}
               </span>
               <Button size="sm" variant="ghost" aria-label={`${l.date} の記録を削除`} onClick={() => useStore.getState().removeLeave(l.id)}>
@@ -520,9 +594,11 @@ function Leaves({ emp }: { emp: Employee }) {
           ))}
         </ul>
       )}
-      <p className="text-xs text-slate-500">
+      <p className="text-xs leading-relaxed text-slate-500">
         半休は0.5日として年5日に数えます。時間単位の年休は残日数からは引きますが、年5日の義務には数えません。
         {!settings.hourlyEnabled && ' 時間単位は「設定」で使うにすると入れられます（労使協定が必要です）。'}
+        会社が指定した日を変えるときは、本人の意見を聴き直してから、ここの記録も直してください（管理簿に反映されます）。
+        {NOT_LEAVE_NOTE}
       </p>
     </div>
   )

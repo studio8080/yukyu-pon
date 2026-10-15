@@ -5,7 +5,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { today, type ISODate } from './lib/dates'
 import { defaultSettings, newId } from './lib/defaults'
 import { sanitizePhoto } from './lib/photo'
-import type { Employee, LeaveRecord, Settings } from './lib/types'
+import type { Employee, GrantAdjustment, LeaveRecord, LeaveSource, Settings } from './lib/types'
 
 export const STORAGE_KEY = 'yukyu-pon:v1'
 export const SNAPSHOT_KEY = 'yukyu-pon:snapshots'
@@ -237,7 +237,7 @@ export function parseBackup(text: string): Data {
     contracts: Array.isArray(e.contracts) ? e.contracts : [],
     trackingStart: str(e.trackingStart) || null,
     openingLots: Array.isArray(e.openingLots) ? e.openingLots : [],
-    adjustments: e.adjustments && typeof e.adjustments === 'object' ? (e.adjustments as Employee['adjustments']) : {},
+    adjustments: e.adjustments && typeof e.adjustments === 'object' ? cleanAdjustments(e.adjustments as Record<string, unknown>) : {},
     extraGrants: Array.isArray(e.extraGrants) ? e.extraGrants : [],
     memo: str(e.memo),
     photo: sanitizePhoto(e.photo),
@@ -251,9 +251,24 @@ export function parseBackup(text: string): Data {
       date: str(l.date),
       kind: l.kind === 'am' || l.kind === 'pm' || l.kind === 'hours' ? l.kind : 'full',
       hours: l.kind === 'hours' && typeof l.hours === 'number' ? l.hours : undefined,
+      source: SOURCES.includes(l.source as LeaveSource) ? (l.source as LeaveSource) : undefined,
       note: str(l.note) || undefined,
     }))
   return { settings: { ...defaultSettings, ...((j.settings as Partial<Settings>) ?? {}) }, employees, leaves }
+}
+
+const SOURCES: LeaveSource[] = ['request', 'designated', 'planned']
+
+/** 手動調整を読む。休職・育休の記録（infeasible）は理由が文字のときだけ残す */
+function cleanAdjustments(a: Record<string, unknown>): Employee['adjustments'] {
+  const out: Employee['adjustments'] = {}
+  for (const [k, v] of Object.entries(a)) {
+    if (!v || typeof v !== 'object') continue
+    const { infeasible, ...rest } = v as GrantAdjustment & { infeasible?: unknown }
+    const ok = infeasible && typeof infeasible === 'object' && typeof (infeasible as { reason?: unknown }).reason === 'string'
+    out[k] = ok ? { ...rest, infeasible: { reason: (infeasible as { reason: string }).reason } } : rest
+  }
+  return out
 }
 
 export function makeBackup(d: Data): string {
