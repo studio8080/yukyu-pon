@@ -23,7 +23,7 @@
 
 公開後の確認（2026-10-12）: 本番の pricing.html を開くと `google-analytics.com/g/collect` に `tid=G-J91XL10BCE`・`en=page_view`・`npa=1`・
 `dl=https://yukyu.kokokikaku.com/pricing.html`（クエリなし）が送られた。アプリ本体（`/`）は analytics.js を読み込まない。
-GA4 管理画面のリアルタイムでの見え方は、運営者が確かめる。
+2026-10-15: GA4 管理画面の「リアルタイム」に、本番の料金・規約ページの閲覧（京都付近・アクティブユーザー1）が出ることを確かめた。
 1. `public/analytics.js` の `ENABLED` を `true`
 2. `public/privacy.html` の5章（外部送信）の表に GA4 の行を足し、表の下の「アクセス解析を使っていません」を下の公表文に差し替える（外部送信規律の公表）
 3. `public/llms.txt` の「アクセス解析」の行を直す

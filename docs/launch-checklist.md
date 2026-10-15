@@ -200,6 +200,11 @@ firebase deploy --only functions:yukyupon --project misefits
 - メールが送れないとき、Webhook は 500 を返して Stripe に再送させ、運営者（MAIL_FROM のアドレス）に「要対応」のメールを送る。
 - ログ: Cloud Logging で `resource.labels.service_name="yukyuponstripewebhook"`。
 
+### 最小残高（2026-10-15 設定。共用アカウント）
+
+設定 → 銀行口座と通貨 →「最小残高」＝**決済残高で ¥10,000 を維持**。毎週の入金からこの額を残し、返金（初回7日以内。最大はビジネス年払い ¥9,800）と不審請求の手数料をすぐ処理できるようにする。
+残高が足りないと返金は「保留」になり、マイナスが続くと Stripe が銀行口座から引き落とす（2026-10-15 時点の −¥334 は Radar・Billing・Managed Payments の手数料によるもので、返金ではない）。
+
 ### 返金するとき（初回決済から7日以内）
 
 Stripe は返金しても契約を止めない。返金だけすると、次回も請求され、キーも延び続ける。
