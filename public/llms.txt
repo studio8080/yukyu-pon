@@ -34,6 +34,13 @@
 ## 主なページ
 - [有休ポン（ツール）](https://yukyu.kokokikaku.com/)
 - [料金プラン](https://yukyu.kokokikaku.com/pricing.html)
+- [有給休暇の解説記事（一覧）](https://yukyu.kokokikaku.com/articles/)
+- [年5日の有給休暇の取得義務（対象者・数え方・時季指定）](https://yukyu.kokokikaku.com/articles/annual-5days.html)
+- [パート・アルバイトの有給休暇（比例付与の日数とシフト制）](https://yukyu.kokokikaku.com/articles/part-time.html)
+- [有給休暇の時効と繰り越し（2年の数え方と使う順番）](https://yukyu.kokokikaku.com/articles/expiry-carryover.html)
+- [年次有給休暇管理簿の作り方（書く項目と保存期間）](https://yukyu.kokokikaku.com/articles/ledger.html)
+- [入社日がばらばらな会社の一斉付与（基準日の統一と前倒し）](https://yukyu.kokokikaku.com/articles/uniform-grant.html)
+- [有給休暇の出勤率8割の数え方（全労働日と出勤とみなす日）](https://yukyu.kokokikaku.com/articles/attendance-80.html)
 - [利用規約](https://yukyu.kokokikaku.com/terms.html)
 - [プライバシーポリシー](https://yukyu.kokokikaku.com/privacy.html)
 - [特定商取引法に基づく表記](https://yukyu.kokokikaku.com/tokushoho.html)

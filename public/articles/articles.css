@@ -1,0 +1,33 @@
+/* 解説記事（public/articles/）。../pages.css に足す分だけ。色は pages.css の変数を使う */
+
+/* 見出し用フォント（yukyu-rounded-800.woff2）は public/*.html の文字だけに絞ってあり、記事の漢字は入っていない。
+   丸ゴシックと本文の書体が混ざらないよう、記事の h1 は本文の書体の太字にする */
+main h1 { font-family: inherit; font-weight: 800; font-size: 26px; }
+h3 { font-size: 16px; line-height: 1.5; margin: 24px 0 4px; }
+
+.crumbs { font-size: 13px; color: var(--muted); margin: 0 0 12px; overflow-wrap: anywhere; }
+.crumbs a { color: var(--muted); }
+.lead { font-size: 16px; color: var(--ink); background: var(--brand-50); border-radius: 16px; padding: 14px 16px; margin: 16px 0 8px; }
+
+table { margin: 12px 0; }
+td, th { overflow-wrap: anywhere; }
+caption { caption-side: top; text-align: left; font-size: 13px; color: var(--muted); padding: 0 0 6px; }
+ol li, ul li { margin: 4px 0; }
+
+.box { border: 1px solid var(--line); border-radius: 16px; padding: 12px 16px; background: var(--paper); margin: 28px 0 0; }
+.box p { font-size: 14px; margin: 0; }
+
+.cta { border: 2px solid var(--brand); border-radius: 20px; padding: 16px 18px; background: var(--brand-50); margin: 20px 0 0; }
+.cta p, .cta li { font-size: 14px; }
+.cta .cta-title { font-weight: 700; color: var(--ink); font-size: 16px; margin: 0 0 4px; }
+.btn.inline { display: inline-block; padding: 10px 24px; }
+
+.sources li { font-size: 13px; overflow-wrap: anywhere; }
+
+/* 一覧 */
+.posts { display: grid; gap: 12px; margin: 20px 0 0; }
+.post { border: 1px solid var(--line); border-radius: 20px; padding: 14px 18px; }
+.post h2 { margin: 0 0 4px; font-size: 17px; }
+.post h2 a { color: var(--ink); text-decoration: none; }
+.post h2 a:hover { color: var(--brand-700); text-decoration: underline; }
+.post p { margin: 0; font-size: 14px; color: var(--muted); }
