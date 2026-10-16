@@ -18,6 +18,9 @@ const BIZ = 'prod_TEST_BIZ';
 const ZENGINPON = 'prod_VEa5100IEJu6JE'; // 全銀ポン Pro（共用アカウントのほかの製品）
 const MISEFITS = 'prod_MISEFITS_TEST';
 const WHSEC = 'whsec_test_secret';
+const SB_WHSEC = 'whsec_sandbox_secret';
+const SB_PRO = 'prod_SANDBOX_PRO';
+const SB_BIZ = 'prod_SANDBOX_BIZ';
 const API_VERSION = '2026-08-26.dahlia';
 const { privateKey, publicKey } = crypto.generateKeyPairSync('ed25519'); // 使い捨ての鍵（本番の秘密鍵は使わない）
 const PEM = privateKey.export({ type: 'pkcs8', format: 'pem' });
@@ -64,7 +67,7 @@ const stripeError = (type, message, extra = {}) => Object.assign(new Error(messa
 const fakes = {
   'firebase-functions/v2/https': { onRequest: (_opts, fn) => Object.assign(fn, { opts: _opts }) },
   'firebase-functions/params': {
-    defineSecret: (n) => ({ value: () => ({ YP_LICENSE_PRIVATE_KEY: PEM, MAIL_FROM: 'MiseFits <studio@kokokikaku.com>', YP_STRIPE_WEBHOOK_SECRET: WHSEC })[n] || 'x' }),
+    defineSecret: (n) => ({ value: () => ({ YP_LICENSE_PRIVATE_KEY: PEM, MAIL_FROM: 'MiseFits <studio@kokokikaku.com>', YP_STRIPE_WEBHOOK_SECRET: WHSEC, YP_SANDBOX_WEBHOOK_SECRET: SB_WHSEC })[n] || 'x' }),
     defineString: (n, o) => ({ value: () => (n === 'SMTP_HOST' ? smtpHost : (o && o.default) || '') }),
   },
   'firebase-admin/app': { initializeApp() {}, getApps: () => [1] },
@@ -113,7 +116,10 @@ const fakes = {
     }),
   },
 };
-const { PLANS } = require(path.join(FN, 'plans.js'));
+const { PLANS, SANDBOX_PLANS } = require(path.join(FN, 'plans.js'));
+// テスト環境（サンドボックス）の関数も作らせる
+SANDBOX_PLANS.pro.productId = SB_PRO;
+SANDBOX_PLANS.business.productId = SB_BIZ;
 const sign = require(path.join(FN, 'sign.js'));
 const B = require(path.join(FN, 'billing.js'));
 const origLoad = Module._load;
@@ -372,7 +378,7 @@ async function post(event, o = {}) {
   const res = { status(s) { status = s; return this; }, json(b) { body = b; return this; }, send(b) { body = b; return this; }, set() {} };
   const raw = JSON.stringify(event, null, 2);
   const header = o.header !== undefined ? o.header : signedHeader(raw, o.secret);
-  await fns.yukyuponStripeWebhook({ method: 'POST', rawBody: Buffer.from(raw), headers: { 'stripe-signature': header, 'content-type': 'application/json' } }, res);
+  await (o.sandbox ? fns.yukyuponSandboxWebhook : fns.yukyuponStripeWebhook)({ method: 'POST', rawBody: Buffer.from(raw), headers: { 'stripe-signature': header, 'content-type': 'application/json' } }, res);
   return { status, body };
 }
 async function getKey(id, o = {}) {
@@ -987,6 +993,31 @@ const reset = () => {
     assert.equal(sign.cappedExpiry(now + 2 * DAY, 3, 30), plusDays(5));
     assert.equal(B.keyExpiry(plusDays(400)), plusDays(30));
     assert.equal(B.keyExpiry(plusDays(4)), plusDays(4));
+  });
+
+  await t('テスト環境（サンドボックス）: 別の署名シークレット・商品ID・コレクション、キーは2日、件名に【テスト環境】', async () => {
+    reset();
+    subs.sub_SB1 = mkSub('sub_SB1', SB_PRO);
+    const ev = mkEvent('checkout.session.completed', mkSession('sub_SB1', { email: 'tester@example.com' }));
+    // 本番の署名シークレットでは通らない（取り違えたら 400）
+    assert.equal((await post(ev, { sandbox: true })).status, 400);
+    const r = await post(ev, { sandbox: true, secret: SB_WHSEC });
+    assert.equal(r.status, 200);
+    const id = sign.licenseIdFor('sub_SB1');
+    assert.ok(store[`yukyuponSandboxLicenses/${id}`], 'テスト環境のコレクションに保存');
+    assert.ok(!store[`yukyuponLicenses/${id}`], '本番のコレクションには書かない');
+    assert.equal(mails.length, 1);
+    assert.match(mails[0].subject, /^【テスト環境】【有休ポン】Proプラン/);
+    const p = payloadOf(keyIn(mails[0].text));
+    assert.ok(p.e <= plusDays(2), `キーは2日まで（${p.e}）`);
+    // 本番の商品はテスト環境の関数では扱わない。テスト環境の商品は本番の関数では扱わない
+    subs.sub_SB2 = mkSub('sub_SB2', PRO);
+    const other = await post(mkEvent('checkout.session.completed', mkSession('sub_SB2')), { sandbox: true, secret: SB_WHSEC });
+    assert.equal(other.body.skipped, 'other product');
+    subs.sub_SB3 = mkSub('sub_SB3', SB_BIZ);
+    const live = await post(mkEvent('checkout.session.completed', mkSession('sub_SB3')));
+    assert.equal(live.body.skipped, 'other product');
+    assert.equal(fns.yukyuponSandboxLicense.opts.region, 'asia-northeast1');
   });
 
   await t('関数の設定: 東京リージョン、インスタンス数の上限、必要なシークレット', async () => {

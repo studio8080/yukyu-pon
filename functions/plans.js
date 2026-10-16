@@ -8,4 +8,15 @@ const PLANS = {
   business: { productId: 'prod_VOaMMPiqQQOP9R', name: 'ビジネス', limit: null }, // 2026-10-07 作成（¥980/月・¥9,800/年、税込）
 };
 
-module.exports = { PLANS };
+/*
+ * Stripe のサンドボックス（テスト環境）の商品ID。決済の経路を本番と同じ関数のコードで通しで確かめるためのもの
+ * （docs/launch-checklist.md 6章）。埋めると yukyuponSandboxWebhook / yukyuponSandboxLicense が作られる
+ * （シークレット YP_SANDBOX_STRIPE_KEY・YP_SANDBOX_WEBHOOK_SECRET が要る）。空に戻してデプロイすれば消える。
+ * テスト環境のキーは2日で切れる。Firestore は yukyuponSandbox* に分け、本番の記録に混ぜない。
+ */
+const SANDBOX_PLANS = {
+  pro: { productId: '', name: 'Pro', limit: 30 },
+  business: { productId: '', name: 'ビジネス', limit: null },
+};
+
+module.exports = { PLANS, SANDBOX_PLANS };

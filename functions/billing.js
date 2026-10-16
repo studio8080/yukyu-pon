@@ -32,13 +32,13 @@ const TERMINAL = ['canceled', 'incomplete_expired'];
 const idOf = (v) => (typeof v === 'string' ? v : v && v.id) || null;
 const firstItem = (sub) => (sub && sub.items && Array.isArray(sub.items.data) && sub.items.data[0]) || null;
 
-/** 契約の商品からプランを決める。有休ポンの商品でなければ null（商品IDが空のプランには当てはめない） */
-function planOf(subscription) {
+/** 契約の商品からプランを決める。有休ポンの商品でなければ null（商品IDが空のプランには当てはめない）。plans はテスト環境（SANDBOX_PLANS）用 */
+function planOf(subscription, plans = PLANS) {
   const items = (subscription && subscription.items && subscription.items.data) || [];
   for (const it of items) {
     const pid = idOf(it.price && it.price.product) || idOf(it.plan && it.plan.product);
     if (!pid) continue;
-    for (const plan of Object.values(PLANS)) if (plan.productId && plan.productId === pid) return plan;
+    for (const plan of Object.values(plans)) if (plan.productId && plan.productId === pid) return plan;
   }
   return null;
 }
@@ -85,13 +85,13 @@ function invoiceProductIds(invoice) {
   return ids;
 }
 
-const ourProductIds = () => Object.values(PLANS).map((p) => p.productId).filter(Boolean);
+const ourProductIds = (plans = PLANS) => Object.values(plans).map((p) => p.productId).filter(Boolean);
 
 /** 明細から、有休ポンの商品が含まれないと分かる請求書か */
-function isOtherProductInvoice(invoice) {
+function isOtherProductInvoice(invoice, plans = PLANS) {
   const ids = invoiceProductIds(invoice);
   if (!ids) return false;
-  const ours = ourProductIds();
+  const ours = ourProductIds(plans);
   return !ids.some((id) => ours.includes(id));
 }
 
