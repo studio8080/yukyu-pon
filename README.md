@@ -192,7 +192,7 @@ $N node_modules/vite/bin/vite.js build          # dist/（launch.json の yukyu-
 ## 8. 今後
 
 - [x] DNS → HTTPS → Search Console・Bing 登録・sitemap 送信（2026-10-07）
-- [ ] 販売開始（`docs/launch-checklist.md` の3〜7）
+- [x] 販売受付開始（2026-10-16。人数の制限は2026-11-16から。`docs/launch-checklist.md` の3〜7）
 - [ ] 会社サイト（kokokikaku-web）の制作実績・llms.txt に載せる
 - [x] OGP 画像・ロゴ・アイコン・構造化データ・llms.txt・404（2026-10-07）
 - [x] 画面のデザインを作り直し（「休暇届にハンコをポン」。5章「画面のデザイン」、2026-10-07）
