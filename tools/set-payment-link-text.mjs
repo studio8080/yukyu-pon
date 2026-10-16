@@ -3,21 +3,52 @@
 //
 // 使い方（運営者が自分の PowerShell で。キーは画面に貼るだけで、ファイルにもリポジトリにも残さない）:
 //   1. Stripe → 開発者 → API キー →「制限付きのキーを作成」。権限は「Payment Links: 書き込み」だけ。名前は yukyupon-payment-link-text など
-//   2. $env:STRIPE_PL_KEY = Read-Host "キーを貼り付け"
-//   3. C:\Users\chaha\tools\node-v24.14.0-win-x64\node.exe tools/set-payment-link-text.mjs plink_… plink_… plink_… plink_…
-//   4. 終わったら Remove-Item Env:STRIPE_PL_KEY、Stripe で作ったキーを削除する
+//   2. C:\Users\chaha\tools\node-v24.14.0-win-x64\node.exe tools/set-payment-link-text.mjs plink_… plink_… plink_… plink_…
+//      キーを聞かれたら貼り付けて Enter（画面には出さない。環境変数 STRIPE_PL_KEY があればそれを使う）
+//   3. 終わったら Stripe で作ったキーを削除する
 //
 // リンクの商品と価格を Stripe から読み、有休ポン（functions/plans.js の商品ID）の4つの価格のどれかを確かめてから文を決める。
 // 金額・商品・周期が想定と違えば何も書かずに止まる。--dry-run なら読むだけ。
 import { createRequire } from 'node:module'
 const { PLANS } = createRequire(import.meta.url)('../functions/plans.js')
 
-const KEY = process.env.STRIPE_PL_KEY
 const args = process.argv.slice(2)
 const dry = args.includes('--dry-run')
 const ids = args.filter((a) => a.startsWith('plink_'))
-if (!KEY || !ids.length) {
-  console.error('STRIPE_PL_KEY と plink_… を指定してください（ファイル冒頭の使い方）')
+if (!ids.length) {
+  console.error('plink_… を指定してください（ファイル冒頭の使い方）')
+  process.exit(1)
+}
+
+/** 環境変数が無ければ、画面に出さずに入力してもらう（貼り付けた文字は表示しない） */
+async function askKey() {
+  if (process.env.STRIPE_PL_KEY) return process.env.STRIPE_PL_KEY.trim()
+  process.stdout.write('制限付きキー（rk_live_…）を貼り付けて Enter（画面には表示しません）: ')
+  const { stdin } = process
+  stdin.setRawMode?.(true)
+  stdin.resume()
+  stdin.setEncoding('utf8')
+  let key = ''
+  return new Promise((resolve) => {
+    stdin.on('data', function onData(chunk) {
+      for (const ch of chunk) {
+        if (ch === '\r' || ch === '\n') {
+          stdin.setRawMode?.(false)
+          stdin.pause()
+          stdin.off('data', onData)
+          process.stdout.write('\n')
+          return resolve(key.trim())
+        }
+        if (ch === '\u0003') process.exit(130) // Ctrl+C
+        if (ch === '\u0008' || ch === '\u007f') key = key.slice(0, -1)
+        else key += ch
+      }
+    })
+  })
+}
+const KEY = await askKey()
+if (!/^rk_live_/.test(KEY)) {
+  console.error(`制限付きキー（rk_live_ で始まるもの）ではありません（${KEY.slice(0, 8)}…）。公開可能キー（pk_live_）では書き込めません。`)
   process.exit(1)
 }
 
