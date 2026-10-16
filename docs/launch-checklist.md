@@ -201,7 +201,9 @@ firebase deploy --only functions:yukyupon --project misefits
 - Webhook: `https://asia-northeast1-misefits.cloudfunctions.net/yukyuponStripeWebhook`
 - キー更新: `https://asia-northeast1-misefits.cloudfunctions.net/yukyuponLicense`（`src/config.ts` の `LICENSE_API` と、`vite.config.ts` の CSP に入れてある）
 
-## 5. Stripe の Webhook 送信先 — 未
+## 5. Stripe の Webhook 送信先 — 送信先は作成済み（2026-10-16）。署名シークレットの登録と再デプロイが未
+
+送信先 `yukyupon-license`（`we_1UR0fG3C6tqke0fyAW6tmoUp`）：お客様のアカウント・スナップショット・`2026-08-26.dahlia`・イベント4件・URL は下のとおり。署名シークレットは運営者が画面で表示して `firebase functions:secrets:set` に貼る（AI は読まない）。
 
 開発者 → Webhook → 送信先を追加
 
