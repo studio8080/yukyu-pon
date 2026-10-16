@@ -122,6 +122,8 @@ Squarespace（`kokokikaku.com`、ログインは `mikan@kokokikaku.com`）でレ
   返金は初回決済から7日以内のお申し出に限ります。利用規約と確認事項: https://yukyu.kokokikaku.com/pricing.html#confirm
   ```
   年払いは「年額4,800円（税込）。毎年自動で更新…」、ビジネスは ¥980／¥9,800 に置き換える。
+  **2026-10-16 時点のダッシュボードには、この欄が作成画面にも編集画面にも無い。Workbench の Shell も本番では読み取り専用。** リンクを4本作ったあと、`tools/set-payment-link-text.mjs` で API から入れる（使い方はファイル冒頭。権限が「Payment Links: 書き込み」だけの制限付きキーを一時的に作り、終わったら削除する）。
+  Pro 月払い: `plink_1UR0Sa3C6tqke0fy1vMxYP6z`（https://buy.stripe.com/aFaeV61pE2bqbXJ6q79R608、2026-10-16 作成。確認文はまだ）
   Stripe の「利用規約への同意を求める」は使わない（規約の URL がアカウント共通の設定で、MiseFits・全銀ポンと共用のため）。規約へのリンクは上のテキストで示す。
 
 4本の URL を `public/pricing.html` の `buy-pro-month` / `buy-pro-year` / `buy-biz-month` / `buy-biz-year` の `href` に入れ、`class="btn off"` の `off` と「（準備中）」を「月払いで申し込む」「年払いで申し込む」に直す。
