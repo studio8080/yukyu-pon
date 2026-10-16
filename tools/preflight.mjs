@@ -175,7 +175,8 @@ tryRun('購入リンク', () => {
   check(links.every((l) => l.found), 'pricing.html に購入ボタン4つ（buy-pro-month / -year、buy-biz-month / -year）')
   const live = links.filter((l) => /^https:\/\/buy\.stripe\.com\/[A-Za-z0-9]+$/.test(l.href) && !/\boff\b/.test(l.cls) && !l.text.includes('準備中'))
   const prep = links.filter((l) => l.href === '#' && /\boff\b/.test(l.cls) && l.text.includes('準備中'))
-  const enforced = constOf(configSrc, 'PRO_ENFORCED') === 'true'
+  const enforceFrom = strOf(configSrc, 'ENFORCE_FROM')
+  const enforced = constOf(configSrc, 'PRO_ENFORCED') === 'true' || /^\d{4}-\d{2}-\d{2}$/.test(enforceFrom || '')
   if (live.length === 4) {
     check(new Set(live.map((l) => l.href)).size === 4, '購入リンク4本がすべて別の URL', live.map((l) => l.href).join(' '))
     ok('購入リンク: 4本とも buy.stripe.com（販売中）')
@@ -184,11 +185,17 @@ tryRun('購入リンク', () => {
   } else {
     ng('購入リンク: 「準備中」と販売中が混ざっている', links.map((l) => `${l.id}=${l.href}`).join(' '))
   }
-  if (SALE) check(enforced, 'PRO_ENFORCED = true（販売開始）')
-  else if (enforced && live.length !== 4) ng('PRO_ENFORCED = true なのに購入リンクがそろっていない（6人目から使えなくなるのに申し込めない）')
-  else ok(`PRO_ENFORCED = ${enforced}`, enforced ? '' : '販売開始で true にする（--sale で確認）')
-  const status = pricing.match(/id="status">([^<]*)</)
-  if (live.length === 4 && status && status.includes('準備中')) (SALE ? ng : warn)('pricing.html の #status が「準備中」のまま', status[1].slice(0, 40))
+  if (SALE) check(enforced, '人数の制限を始める日（ENFORCE_FROM）が決まっている', enforceFrom || '')
+  else if (enforced && live.length !== 4) ng('人数の制限が決まっているのに購入リンクがそろっていない（6人目から使えなくなるのに申し込めない）')
+  else ok(`人数の制限: ${enforceFrom || 'なし'}`, enforced ? '' : '販売開始で ENFORCE_FROM を決める（--sale で確認）')
+  const status = (pricing.match(/id="status">([\s\S]*?)<\/p>/) || [])[1] || ''
+  if (live.length === 4 && status.includes('準備中')) (SALE ? ng : warn)('pricing.html の #status が「準備中」のまま', status.slice(0, 40))
+  if (enforceFrom) {
+    const [, y, m, d] = enforceFrom.match(/^(\d+)-(\d+)-(\d+)$/) || []
+    const jp = y ? `${y}年${Number(m)}月${Number(d)}日` : ''
+    check(status.includes(jp), `pricing.html の #status に制限の開始日（${jp}）`, status.slice(0, 60))
+    check(read('public/llms.txt').includes(jp), `llms.txt に制限の開始日（${jp}）`)
+  }
 })
 
 // ---------------- 7. 秘密情報がリポジトリに入っていない ----------------

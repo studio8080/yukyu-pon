@@ -9,7 +9,8 @@ import { LedgerView } from './components/LedgerView'
 import { backupNow, SettingsView } from './components/SettingsView'
 import { Button } from './components/ui'
 import { initAutosave, resumeAutosave, useAutosave } from './lib/backup'
-import { renewLicense } from './lib/plan'
+import { renewLicense, usePlan } from './lib/plan'
+import { ENFORCE_FROM_TEXT, FREE_LIMIT, PRO_ENFORCED } from './config'
 import { isISODate, today } from './lib/dates'
 import { useStore } from './store'
 
@@ -85,6 +86,7 @@ export default function App() {
       <main className="mx-auto max-w-6xl px-4 pt-6 pb-10">
         <BackupReminder onSettings={() => go('settings')} />
         <LicenseNotice />
+        <EnforceNotice />
         {tab === 'home' && <Dashboard onOpen={setOpenId} onNavigate={go} />}
         {tab === 'leave' && <LeaveEntry onOpen={setOpenId} />}
         {tab === 'import' && <ImportView onDone={() => go('home')} />}
@@ -232,6 +234,26 @@ function BackupReminder({ onSettings }: { onSettings: () => void }) {
   )
 }
 
+/** 人数の制限が始まる前の告知（利用規約8条の1か月前の告知）。無料の人数を超えて使っている人にだけ出す */
+function EnforceNotice() {
+  const plan = usePlan()
+  const [closed, setClosed] = useState(false)
+  if (PRO_ENFORCED || plan.pro || plan.activeCount <= FREE_LIMIT || closed) return null
+  return (
+    <div className="no-print mb-5 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl bg-sun-100 px-4 py-3 text-sm text-sun-700">
+      <ShieldAlert size={16} className="shrink-0" />
+      <span>
+        <strong>{ENFORCE_FROM_TEXT}から、在籍{FREE_LIMIT + 1}人以上で使うには有料プランが必要になります</strong>（いまの在籍は{plan.activeCount}人）。それまでは今までどおり使えます。その後も、入れたデータの閲覧・管理簿の出力・バックアップは止めません。
+      </span>
+      <a href="./pricing.html" className="font-bold underline">
+        料金と申し込み
+      </a>
+      <button type="button" className="underline" onClick={() => setClosed(true)}>
+        閉じる
+      </button>
+    </div>
+  )
+}
 
 function LicenseNotice() {
   const notice = useStore((s) => s.licenseNotice)

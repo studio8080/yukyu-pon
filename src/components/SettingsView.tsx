@@ -1,6 +1,6 @@
 import { Crown, Download, FolderSync, History, Lock, ShieldCheck, Trash2, Upload } from 'lucide-react'
 import { useState } from 'react'
-import { PLANS, planName, PRO_ENFORCED } from '../config'
+import { ENFORCE_FROM_TEXT, FREE_LIMIT, PLANS, planName, PRO_ENFORCED } from '../config'
 import { decryptBackup, encryptBackup, isEncryptedBackup, MIN_PASSWORD } from '../lib/crypto'
 import { autosaveSupported, chooseAutosaveFile, readAutosaveFile, resumeAutosave, stopAutosave, useAutosave } from '../lib/backup'
 import { fmt, isISODate, today } from '../lib/dates'
@@ -541,7 +541,7 @@ function ProCard() {
       </div>
       <p className="mb-3 text-sm text-slate-600">
         すべて税込。機能はどのプランも同じで、違うのは管理できる在籍人数（退職した人は数えません）と、広告の有無（有料プランは広告なし）です。いま在籍 {plan.activeCount}人。
-        {!PRO_ENFORCED && <strong> いまは公開記念として、人数の制限なく無料で使えます。</strong>}
+        {!PRO_ENFORCED && <strong> いまは公開記念として人数の制限なく無料で使えます。{ENFORCE_FROM_TEXT}から、在籍{FREE_LIMIT + 1}人以上は有料プランが必要になります。</strong>}
         有料プランでも、入れたデータの閲覧・管理簿の出力・バックアップは止めません。{' '}
         <a href="./pricing.html" className="text-brand-700 underline">
           料金と申し込み

@@ -129,7 +129,7 @@ Excel の有休管理が壊れかけている会社。
 - 手動発行: `node tools/issue-key.mjs --months 12 --plan pro|business [--id ライセンスID]`（台帳 `tools/issued-keys.csv` は gitignore）。
 - 確かめ方: `functions/test/functions.test.js`（Webhook・キー更新の全経路。イベントは Stripe の実際の形）、`src/lib/license.test.ts`・`plan.test.ts`（サーバーのキーをブラウザが読めるか・自動更新）、`tools/preflight.mjs`（設定の照合。販売前は `--sale`）。
 - **テスト購入はしない**（2026-10-15 運営者の方針）。代わりにテスト・preflight・全銀ポンの実地の結果で保証し、最初の実購入を通し確認として見る（`docs/launch-checklist.md` 6・7章）。
-- `src/config.ts` の `PRO_ENFORCED` は、支払いリンク4本を入れて `node tools/preflight.mjs --sale` が通るときに `true` にする。
+- 販売は 2026-10-16 に開始（申し込みの受け付け）。人数の制限は `src/config.ts` の `ENFORCE_FROM`（2026-11-16）から自動で始まる（利用規約8条の1か月前の告知のため。`PRO_ENFORCED` はこの日付で決まる）。販売の状態は `node tools/preflight.mjs --sale` で照合する。
 
 **料金・上限を変えるときに同時に直すもの**: `functions/plans.js`、`functions/billing.js` のメール文（「無料プラン（在籍5人まで）」）。直したら `node tools/preflight.mjs` で照合する、`src/config.ts`（`PLANS`・`FREE_LIMIT`・`planName`）、`src/lib/plan.ts` の `limitMessage`、`public/pricing.html`（表と確認事項）、`public/terms.html` 第3条、`public/tokushoho.html`（販売価格）、`public/llms.txt`、`index.html` の title・説明、Stripe の価格と支払いリンクのカスタムテキスト（`docs/launch-checklist.md` 3-2）、この README。
 
