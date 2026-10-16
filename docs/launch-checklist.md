@@ -123,7 +123,15 @@ Squarespace（`kokokikaku.com`、ログインは `mikan@kokokikaku.com`）でレ
   ```
   年払いは「年額4,800円（税込）。毎年自動で更新…」、ビジネスは ¥980／¥9,800 に置き換える。
   **2026-10-16 時点のダッシュボードには、この欄が作成画面にも編集画面にも無い。Workbench の Shell も本番では読み取り専用。** リンクを4本作ったあと、`tools/set-payment-link-text.mjs` で API から入れる（使い方はファイル冒頭。権限が「Payment Links: 書き込み」だけの制限付きキーを一時的に作り、終わったら削除する）。
-  Pro 月払い: `plink_1UR0Sa3C6tqke0fy1vMxYP6z`（https://buy.stripe.com/aFaeV61pE2bqbXJ6q79R608、2026-10-16 作成。確認文はまだ）
+  2026-10-16 に4本作成（どれも Managed Payments 無効・税の自動徴収なし・利用規約の同意なし・完了ページはカスタムメッセージ。**作成画面の Managed Payments は既定でオンになっているので、毎回外す**）。確認文はまだ:
+
+  | プラン | ID | URL |
+  |---|---|---|
+  | Pro 月払い | `plink_1UR0Sa3C6tqke0fy1vMxYP6z` | https://buy.stripe.com/aFaeV61pE2bqbXJ6q79R608 |
+  | Pro 年払い | `plink_1UR0Z63C6tqke0fy10jtRwvn` | https://buy.stripe.com/4gM4gsc4i8zOd1NdSz9R609 |
+  | ビジネス 月払い | `plink_1UR0aa3C6tqke0fyUxTZK1sD` | https://buy.stripe.com/28E28k9Wag2g6Dp15N9R60a |
+  | ビジネス 年払い | `plink_1UR0cT3C6tqke0fyEhtPBbVU` | https://buy.stripe.com/8x27sEd8mcQ4f9VbKr9R60b |
+
   Stripe の「利用規約への同意を求める」は使わない（規約の URL がアカウント共通の設定で、MiseFits・全銀ポンと共用のため）。規約へのリンクは上のテキストで示す。
 
 4本の URL を `public/pricing.html` の `buy-pro-month` / `buy-pro-year` / `buy-biz-month` / `buy-biz-year` の `href` に入れ、`class="btn off"` の `off` と「（準備中）」を「月払いで申し込む」「年払いで申し込む」に直す。
