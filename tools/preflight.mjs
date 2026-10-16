@@ -2,7 +2,7 @@
 // 出荷前チェック（課金まわり）。ネットワーク・秘密情報なしで、リポジトリのファイルだけを読んで確かめる。
 //
 //   node tools/preflight.mjs          デプロイ前（Functions を出す前・設定を変えたあと）
-//   node tools/preflight.mjs --sale   販売開始前（購入リンク4本と PRO_ENFORCED=true までそろっているか）
+//   node tools/preflight.mjs --sale   販売受付の確認（購入リンク4本と人数制限の開始日・告知の整合）
 //
 // 失敗が1つでもあれば終了コード 1。手順は docs/launch-checklist.md の「デプロイ前」「販売開始前」。
 import crypto from 'node:crypto'
