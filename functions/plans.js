@@ -15,8 +15,8 @@ const PLANS = {
  * テスト環境のキーは2日で切れる。Firestore は yukyuponSandbox* に分け、本番の記録に混ぜない。
  */
 const SANDBOX_PLANS = {
-  pro: { productId: '', name: 'Pro', limit: 30 },
-  business: { productId: '', name: 'ビジネス', limit: null },
+  pro: { productId: 'prod_VRuymTZoORb3nY', name: 'Pro', limit: 30 }, // 「ここ企画サンドボックス」の 有休ポン Pro（テスト） ¥480/月
+  business: { productId: 'prod_VRuyPKAIpyQI8l', name: 'ビジネス', limit: null }, // 有休ポン ビジネス（テスト） ¥980/月
 };
 
 module.exports = { PLANS, SANDBOX_PLANS };
