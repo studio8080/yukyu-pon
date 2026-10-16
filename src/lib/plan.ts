@@ -36,6 +36,8 @@ export function limitMessage(plan: Pick<Plan, 'pro' | 'limit'>): string {
 
 export type Plan = {
   pro: boolean
+  /** 保存済みキーを確認中。結果が出るまで広告を読み込まない */
+  checking: boolean
   license: LicenseResult | null
   /** 在籍中の人数の上限（null = 無制限） */
   limit: number | null
@@ -49,20 +51,22 @@ export function usePlan(): Plan {
   const key = useStore((s) => s.licenseKey)
   const employees = useStore((s) => s.employees)
   const asOf = useStore((s) => s.asOf)
-  const [license, setLicense] = useState<LicenseResult | null>(null)
+  const [verified, setVerified] = useState<{ key: string; result: LicenseResult } | null>(null)
   useEffect(() => {
     let alive = true
     if (!key) {
-      setLicense(null)
+      setVerified(null)
       return
     }
-    verifyLicense(key, today()).then((r) => alive && setLicense(r))
+    verifyLicense(key, today()).then((result) => alive && setVerified({ key, result }))
     return () => {
       alive = false
     }
   }, [key])
+  const license = verified?.key === key ? verified.result : null
+  const checking = !!key && verified?.key !== key
   const pro = !!license?.ok
   const activeCount = employees.filter((e) => !e.retireDate || e.retireDate >= asOf).length
   const limit = !PRO_ENFORCED ? null : pro ? (license?.ok && license.payload.n) || null : FREE_LIMIT
-  return { pro, license, limit, activeCount, room: limit == null ? null : Math.max(0, limit - activeCount), enforced: PRO_ENFORCED }
+  return { pro, checking, license, limit, activeCount, room: limit == null ? null : Math.max(0, limit - activeCount), enforced: PRO_ENFORCED }
 }

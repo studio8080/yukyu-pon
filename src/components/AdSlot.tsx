@@ -10,7 +10,7 @@ import { usePlan } from '../lib/plan'
 export function AdSlot({ slot }: { slot: AdSlotName }) {
   const plan = usePlan()
   const [r] = useState(Math.random)
-  const ad = plan.pro ? null : pickAd(slot, undefined, r)
+  const ad = plan.pro || plan.checking ? null : pickAd(slot, undefined, r)
   if (!ad) return null
   return (
     <aside className="no-print rounded-[20px] border border-line bg-white p-4 sm:p-5" aria-label="広告">
