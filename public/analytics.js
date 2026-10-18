@@ -42,6 +42,24 @@
   gtag('config', id, { send_page_view: false, page_location: page, page_referrer: referrer, page_title: document.title,
     allow_google_signals: false, allow_ad_personalization_signals: false, cookie_domain: location.hostname });
   gtag('event', 'page_view', { page_location: page, page_referrer: referrer, page_title: document.title });
+  // 料金ページの公開情報だけを固定ラベルで記録する。リンク先URLやアプリ内データは読まない。
+  if (location.pathname === '/pricing.html') {
+    document.addEventListener('click', function (event) {
+      try {
+        if (window['ga-disable-' + id] || navigator.doNotTrack === '1' || window.doNotTrack === '1' ||
+            navigator.globalPrivacyControl === true || localStorage.getItem(optKey) === '1') return;
+        var link = event.target && event.target.closest && event.target.closest('a[data-revenue-plan][data-revenue-cycle]');
+        if (!link) return;
+        var plan = link.getAttribute('data-revenue-plan');
+        var cycle = link.getAttribute('data-revenue-cycle');
+        if (['pro', 'business'].indexOf(plan) === -1 || ['monthly', 'yearly'].indexOf(cycle) === -1) return;
+        gtag('event', 'revenue_action', {
+          action: 'checkout', placement: 'pricing-card', plan: plan, billing_cycle: cycle,
+          page_location: page, page_referrer: ''
+        });
+      } catch (_) { /* 計測の失敗で申込みを止めない */ }
+    });
+  }
   var s = document.createElement('script');
   s.async = true;
   s.src = 'https://www.googletagmanager.com/gtag/js?id=' + id;
