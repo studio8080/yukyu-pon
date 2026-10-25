@@ -623,6 +623,8 @@ export function plannedCheck(report: Report, dates: ISODate[], perDay = 1): Plan
   const emp = report.employee
   const out: PlannedCheck = { ok: true, noRights: [], overFive: [], afterRetire: [] }
   const existing = report.uses.filter((u) => isPlanned(u.record))
+  // 過去の未確認は実績にも見込みにも数えない。登録済み日の重複判定には明細を残す。
+  const counted = existing.filter((u) => isActual(u.record, report.asOf) || (u.record.date > report.asOf && isScheduled(u.record)))
   const used = new Map<ISODate, number>() // 期間ごとに、これまでに数えた計画的付与
   for (const d of [...new Set(dates)].sort()) {
     if (emp.retireDate && d > emp.retireDate) {
@@ -635,7 +637,7 @@ export function plannedCheck(report: Report, dates: ISODate[], perDay = 1): Plan
       continue
     }
     if (!used.has(h.grantDate))
-      used.set(h.grantDate, round(existing.filter((u) => u.record.date >= h.grantDate && u.record.date < h.until).reduce((s, u) => s + u.amount, 0)))
+      used.set(h.grantDate, round(counted.filter((u) => u.record.date >= h.grantDate && u.record.date < h.until).reduce((s, u) => s + u.amount, 0)))
     if (existing.some((u) => u.record.date === d)) continue // 登録済みの日は二重に数えない
     const total = round(used.get(h.grantDate)! + perDay)
     used.set(h.grantDate, total)
