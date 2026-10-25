@@ -5,12 +5,15 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { today, type ISODate } from './lib/dates'
 import { defaultSettings, newId } from './lib/defaults'
 import { sanitizePhoto } from './lib/photo'
+import { migrateLeaves, reviewRecord, isScheduled } from './lib/leaveReview'
 import type { Employee, GrantAdjustment, LeaveRecord, LeaveSource, Settings } from './lib/types'
 
 export const STORAGE_KEY = 'yukyu-pon:v1'
 export const SNAPSHOT_KEY = 'yukyu-pon:snapshots'
 export const BACKUP_FORMAT = 'yukyu-pon-backup'
 const MAX_SNAPSHOTS = 12
+// persist 初期化中のエラーは store を書き換えず捕捉する（元の保存データを保持）。
+export let hydrationError = ''
 
 export type Data = {
   settings: Settings
@@ -40,6 +43,7 @@ type State = Data & {
   removeEmployee: (id: string) => void
   addLeaves: (ls: Omit<LeaveRecord, 'id'>[]) => number
   removeLeave: (id: string) => void
+  reviewLeave: (id: string, action: 'taken' | 'cancelled' | 'pending' | 'postponed', date?: ISODate) => void
   replaceAll: (d: Data) => void
   mergeImport: (employees: Employee[], leaves: Omit<LeaveRecord, 'id'>[]) => void
   markBackedUp: () => void
@@ -89,20 +93,30 @@ export const useStore = create<State>()(
       addLeaves: (ls) => {
         // 同じ人・同じ日・同じ区分の重複は足さない（時間単位は時間数も含めて同じなら重複）
         const k = (l: Omit<LeaveRecord, 'id'>) => `${l.employeeId}|${l.date}|${l.kind}|${l.kind === 'hours' ? l.hours : ''}`
-        const have = new Set(get().leaves.map(k))
+        const have = new Set(get().leaves.filter(isScheduled).map(k))
         const fresh: LeaveRecord[] = []
         for (const l of ls) {
           if (have.has(k(l))) continue
           have.add(k(l))
-          fresh.push({ ...l, id: newId() })
+          fresh.push({ ...l, confirmation: l.date > today() ? 'pending' : 'taken', id: newId() })
         }
         if (fresh.length) set((s) => ({ leaves: [...s.leaves, ...fresh], lastChangeAt: now() }))
         return fresh.length
       },
       removeLeave: (id) => set((s) => ({ leaves: s.leaves.filter((l) => l.id !== id), lastChangeAt: now() })),
+      reviewLeave: (id, action, date) => {
+        const l = get().leaves.find(x => x.id === id)
+        if (!l) throw new Error('記録が見つかりません')
+        if (l.confirmation === 'postponed' && action !== 'postponed') throw new Error('延期元の記録は変更できません。延期先を確認してください')
+        if (action === 'postponed' && l.confirmation === 'postponed') throw new Error('すでに延期済みです')
+        const next = reviewRecord(l, action, date)
+        if ((action === 'pending' || action === 'taken' || action === 'postponed') && get().leaves.some(x => x.id !== id && isScheduled(x) && x.employeeId === l.employeeId && x.date === (action === 'postponed' ? date : l.date) && x.kind === l.kind && (x.kind !== 'hours' || x.hours === l.hours))) throw new Error('同じ日・区分の記録がすでにあります')
+        takeSnapshot('取得確認を変更する前')
+        set(s => ({ leaves: [...s.leaves.map(x => x.id === id ? next : x), ...(action === 'postponed' ? [{ ...l, id: newId(), date: date!, confirmation: 'pending' as const, originId: l.id, reviewedAt: undefined, postponedTo: undefined }] : [])], lastChangeAt: now() }))
+      },
       replaceAll: (d) => {
         takeSnapshot('バックアップから戻す前')
-        set({ settings: { ...defaultSettings, ...d.settings }, employees: d.employees, leaves: d.leaves, lastChangeAt: now() })
+        set({ settings: { ...defaultSettings, ...d.settings }, employees: d.employees, leaves: migrateLeaves(d.leaves), lastChangeAt: now() })
       },
       mergeImport: (employees, leaves) => {
         takeSnapshot('取り込みの前')
@@ -125,8 +139,9 @@ export const useStore = create<State>()(
     }),
     {
       name: STORAGE_KEY,
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => localStorage),
+      onRehydrateStorage: () => (_state, error) => { if (error) hydrationError = '保存データの読み込み・移行を完了できませんでした。ブラウザの空き容量や保存設定を確認してから再読み込みしてください。元の保存データは保持しています。' },
       partialize: (s) => ({
         settings: s.settings,
         employees: s.employees,
@@ -139,10 +154,17 @@ export const useStore = create<State>()(
         licenseNotice: s.licenseNotice,
       }),
       // 設定の項目が増えても、古い保存データに既定値を足して読む
-      migrate: (persisted) => persisted as State,
+      migrate: (persisted, version) => {
+        if (version > 3) throw new Error('このアプリより新しい保存形式です')
+        const p = persisted as State
+        // 元の保存文字列を一度だけ別キーに残す。保存できなければ移行を中断する。
+        const original = localStorage.getItem(STORAGE_KEY)
+        if (original && !localStorage.getItem('yukyu-pon:before-review-v3')) localStorage.setItem('yukyu-pon:before-review-v3', original)
+        return { ...p, leaves: migrateLeaves(p.leaves ?? []) }
+      },
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<State>
-        return { ...current, ...p, settings: { ...defaultSettings, ...(p.settings ?? {}) } }
+        return { ...current, ...p, leaves: migrateLeaves(p.leaves ?? current.leaves), settings: { ...defaultSettings, ...(p.settings ?? {}) } }
       },
     },
   ),
@@ -227,6 +249,7 @@ export function parseBackup(text: string): Data {
   if (j?.format !== BACKUP_FORMAT || !Array.isArray(j.employees) || !Array.isArray(j.leaves)) {
     throw new Error('有休ポンのバックアップファイルではありません。')
   }
+  if (typeof j.version === 'number' && j.version > 3) throw new Error('このアプリより新しいバックアップ形式です。対応する版を使ってください。')
   const str = (v: unknown) => (typeof v === 'string' ? v : '')
   const employees: Employee[] = (j.employees as Record<string, unknown>[]).map((e) => ({
     id: str(e.id) || newId(),
@@ -253,8 +276,12 @@ export function parseBackup(text: string): Data {
       hours: l.kind === 'hours' && typeof l.hours === 'number' ? l.hours : undefined,
       source: SOURCES.includes(l.source as LeaveSource) ? (l.source as LeaveSource) : undefined,
       note: str(l.note) || undefined,
+      confirmation: l.confirmation as LeaveRecord['confirmation'],
+      reviewedAt: str(l.reviewedAt) || undefined,
+      postponedTo: str(l.postponedTo) || undefined,
+      originId: str(l.originId) || undefined,
     }))
-  return { settings: { ...defaultSettings, ...((j.settings as Partial<Settings>) ?? {}) }, employees, leaves }
+  return { settings: { ...defaultSettings, ...((j.settings as Partial<Settings>) ?? {}) }, employees, leaves: migrateLeaves(leaves) }
 }
 
 const SOURCES: LeaveSource[] = ['request', 'designated', 'planned']
@@ -272,5 +299,5 @@ function cleanAdjustments(a: Record<string, unknown>): Employee['adjustments'] {
 }
 
 export function makeBackup(d: Data): string {
-  return JSON.stringify({ format: BACKUP_FORMAT, version: 2, savedAt: now(), ...d }, null, 1)
+  return JSON.stringify({ format: BACKUP_FORMAT, version: 3, savedAt: now(), ...d }, null, 1)
 }

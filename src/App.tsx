@@ -12,7 +12,7 @@ import { initAutosave, resumeAutosave, useAutosave } from './lib/backup'
 import { renewLicense, usePlan } from './lib/plan'
 import { ENFORCE_FROM_TEXT, FREE_LIMIT, PRO_ENFORCED } from './config'
 import { isISODate, today } from './lib/dates'
-import { useStore } from './store'
+import { hydrationError, useStore } from './store'
 
 const TABS = [
   { key: 'home', label: 'ホーム', icon: Home },
@@ -31,6 +31,7 @@ export default function App() {
   const asOf = useStore((s) => s.asOf)
   const setAsOf = useStore((s) => s.setAsOf)
   useEffect(() => {
+    if (hydrationError) return
     initAutosave()
     renewLicense() // 契約中ならキーの期限を延ばす。解約済みならキーを外す（送るのはライセンスIDだけ）
     // メールの「/#pro」から来たら、キーの入力欄を開く
@@ -47,6 +48,8 @@ export default function App() {
     setTab(t as TabKey)
     window.scrollTo({ top: 0 })
   }
+
+  if (hydrationError) return <main className="mx-auto max-w-xl p-6"><p role="alert">{hydrationError}</p></main>
 
   return (
     <div className="min-h-screen">

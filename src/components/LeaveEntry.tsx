@@ -7,6 +7,8 @@ import { FIXED_DAYS, leaveLabel, LEAVE_LABEL, LEAVE_SOURCE_LABEL, NOT_LEAVE_NOTE
 import { useReports } from '../lib/view'
 import { useStore } from '../store'
 import { Button, Card, Field, inputCls, Notice, PageHead } from './ui'
+import { MonthlyReview } from './MonthlyReview'
+import { confirmation, CONFIRMATION_LABEL, isScheduled } from '../lib/leaveReview'
 
 /** 区分の選択（設定で使わない区分は出さない）。時間単位のときは時間数も選ぶ。noHours = 時間単位を出さない（会社の指定・計画的付与） */
 export function KindPicker({ kind, hours, onChange, settings, noHours }: { kind: LeaveKind; hours: number; onChange: (k: LeaveKind, h: number) => void; settings: Settings; noHours?: boolean }) {
@@ -98,7 +100,7 @@ export function LeaveEntry({ onOpen }: { onOpen: (id: string) => void }) {
     }
     return map
   }, [leaves, month])
-  const monthTotal = [...byDay.values()].flat().reduce((s, l) => s + (byId.get(l.employeeId) ? recordDays(byId.get(l.employeeId)!, l) : 0), 0)
+  const monthTotal = [...byDay.values()].flat().filter(isScheduled).reduce((s, l) => s + (byId.get(l.employeeId) ? recordDays(byId.get(l.employeeId)!, l) : 0), 0)
   const shift = (d: number) => {
     const t = y * 12 + (m - 1) + d
     setMonth(`${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, '0')}`)
@@ -117,6 +119,7 @@ export function LeaveEntry({ onOpen }: { onOpen: (id: string) => void }) {
   return (
     <div className="space-y-4">
       <PageHead label="休んだ日">休んだ日<small>を</small>入れる</PageHead>
+      <MonthlyReview />
       <div className="grid gap-4 lg:grid-cols-[22rem_1fr]">
         <Card className="h-fit">
           <h2 className="mb-3 font-display text-lg text-ink">1人ずつ入れる</h2>
@@ -180,7 +183,7 @@ export function LeaveEntry({ onOpen }: { onOpen: (id: string) => void }) {
               <ChevronLeft size={18} />
             </Button>
             <h2 className="font-display text-lg text-ink">
-              {y}年{m}月 <span className="text-sm font-normal text-slate-500">合計 {fmtDays(Math.round(monthTotal * 10) / 10)}</span>
+              {y}年{m}月 <span className="text-sm font-normal text-slate-500">予定・未確認を含む登録 {fmtDays(Math.round(monthTotal * 10) / 10)}</span>
             </h2>
             <Button size="sm" variant="ghost" onClick={() => shift(1)} aria-label="次の月">
               <ChevronRight size={18} />
@@ -208,6 +211,7 @@ export function LeaveEntry({ onOpen }: { onOpen: (id: string) => void }) {
                         <li key={l.id} className="group flex items-center gap-0.5">
                           <button type="button" className="min-w-0 flex-1 truncate rounded bg-brand-100 px-1 text-left text-brand-900 hover:bg-brand-200" onClick={() => onOpen(l.employeeId)} title={`${name} ${leaveLabel(l)}${leaveSource(l) !== 'request' ? `・${LEAVE_SOURCE_LABEL[leaveSource(l)]}` : ''}${l.note ? `（${l.note}）` : ''}`}>
                             {name.split(/\s/)[0]}
+                            <span className="text-[10px]">{CONFIRMATION_LABEL[confirmation(l)]}</span>
                             <span className="text-[10px]">{short(l)}</span>
                           </button>
                           <button

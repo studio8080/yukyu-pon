@@ -19,6 +19,7 @@ export function Dashboard({ onOpen, onNavigate }: { onOpen: (id: string) => void
   const reports = useReports()
   const asOf = useStore((s) => s.asOf)
   const settings = useStore((s) => s.settings)
+  const pending = useStore(s => s.leaves).filter(l => l.confirmation === 'pending' && l.date <= asOf).length
   const [filter, setFilter] = useState<Filter>('active')
   const plan = usePlan()
   const [att, setAtt] = useState<{ emp: Employee; grant: GrantEvent } | null>(null)
@@ -55,6 +56,7 @@ export function Dashboard({ onOpen, onNavigate }: { onOpen: (id: string) => void
         <span className="sr-only">（{y}年）</span>
       </PageHead>
 
+      {pending > 0 && <Card><p className="mb-2 text-sm">集計日までの未確認が{pending}件あります。残高・年5日・管理簿の実績には含めていません。</p><Button size="sm" onClick={() => onNavigate('leave')}>月次の取得確認へ</Button></Card>}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat icon={<AlertTriangle size={16} />} tone="red" label="至急" sub="5日の期限まで1か月以内" value={stats.red} unit="人" onClick={() => setFilter('action')} />
         <Stat icon={<Hourglass size={16} />} tone="yellow" label="注意" sub="期限まで3か月以内" value={stats.yellow} unit="人" onClick={() => setFilter('action')} />
