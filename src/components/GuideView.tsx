@@ -26,6 +26,7 @@ export function GuideView() {
   return (
     <div className="space-y-4">
       <PageHead label="ルール">計算<small>の</small>ルール</PageHead>
+      <Card><h2 className="mb-2 text-lg font-bold">予定の月次確認</h2><p className="text-sm">新しい未来の記録は未確認です。「休んだ日」の月次確認で取得・延期・取消を選んでください。未確認は日付が過ぎても残高・年5日・管理簿の実績に数えません。未来の予定は見込みだけに使い、過去の未確認は見込みにも数えません。導入前の過去記録は「旧記録」として従来どおり計上し、移行時点の未来は未確認にします。過去日を新規登録すると取得として登録します。バックアップの復元でも同じ移行を行います。</p></Card>
       <p className="text-sm text-slate-600">
         年5日の取得義務・パートの比例付与・時効・管理簿・一斉付与・出勤率は、
         <a href="./articles/" className="font-bold text-brand-700 underline">

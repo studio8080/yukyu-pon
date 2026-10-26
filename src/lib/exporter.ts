@@ -4,6 +4,7 @@ import { addMonthsCivil, fmt, fmtDays, minDate, type ISODate } from './dates'
 import { buildReport, contractAt, contractLabel, leaveSource, recordDays, TENURE_LABEL, type Report } from './engine'
 import { LEAVE_SOURCE_LABEL, LEAVE_SOURCE_MARK, leaveLabel, type Employee, type LeaveRecord, type Settings } from './types'
 import { windowLabel } from './view'
+import { confirmation, CONFIRMATION_LABEL } from './leaveReview'
 
 export type LedgerRow = {
   code: string
@@ -149,8 +150,11 @@ export function buildWorkbook(XLSX: XLSXModule, rows: LedgerRow[], employees: Em
       nameOf.get(l.employeeId) ? Math.round(recordDays(nameOf.get(l.employeeId)!, l) * 1000) / 1000 : '',
       LEAVE_SOURCE_LABEL[leaveSource(l)],
       l.note ?? '',
+      CONFIRMATION_LABEL[confirmation(l)],
+      l.reviewedAt ?? '',
+      l.postponedTo ?? '',
     ])
-  const ws3 = XLSX.utils.aoa_to_sheet([['社員番号', '氏名', '取得日', '区分', '日数', '経緯', 'メモ'], ...recs])
+  const ws3 = XLSX.utils.aoa_to_sheet([['社員番号', '氏名', '記録日（予定含む）', '区分', '日数', '経緯', 'メモ', '確認状態', '確認日', '延期先'], ...recs])
   ws3['!cols'] = [8, 14, 12, 10, 6, 12, 24].map((wch) => ({ wch }))
   XLSX.utils.book_append_sheet(wb, ws3, '取得記録')
   return wb

@@ -1,5 +1,6 @@
 // 有休の計算エンジン。画面から切り離してあり、ここだけでテストできる。
 // 法令の根拠は README の「計算のルール」に、条文と一緒にまとめてある。
+import { isActual, isScheduled } from './leaveReview'
 
 import {
   addDays,
@@ -298,10 +299,12 @@ export function buildReport(
   asOf: ISODate,
 ): Report {
   const warnings: string[] = []
+  const pending = leaves.filter(l => l.employeeId === emp.id && l.confirmation === 'pending' && l.date <= asOf).length
+  if (pending) warnings.push(`集計日までの未確認が${pending}件あります。「休んだ日」の月次確認で取得・延期・取消を確認してください。実績には計上していません。`)
   const start = emp.trackingStart || emp.hireDate
   const schedule = grantSchedule(emp, settings, addMonthsCivil(asOf, 24))
   const mine = leaves
-    .filter((l) => l.employeeId === emp.id)
+    .filter((l) => l.employeeId === emp.id && isScheduled(l))
     .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.kind.localeCompare(b.kind)))
 
   if (emp.contracts.length === 0) warnings.push('契約（週の勤務日数）が入っていません。付与日数を計算できません。')
@@ -408,7 +411,7 @@ export function buildReport(
     if (r.date < emp.hireDate) warnings.push(`${fmt(r.date)} の取得は入社日より前です。`)
     if (emp.retireDate && r.date > emp.retireDate) warnings.push(`${fmt(r.date)} の取得は退職日より後です。`)
 
-    if (r.date < start || r.date > asOf) {
+    if (r.date < start || !isActual(r, asOf)) {
       uses.push({ record: r, amount, deducted: false, shortfall: 0 })
       continue
     }
@@ -473,7 +476,7 @@ export function buildReport(
     // 時間単位の年休は年5日に数えない（平30.12.28 基発1228第15号）
     const counted = inWin.filter((r) => r.kind !== 'hours')
     const days = (r: LeaveRecord) => countable.get(r.id) ?? recordDays(emp, r)
-    const taken = round(counted.filter((r) => r.date <= asOf).reduce((s, r) => s + days(r), 0))
+    const taken = round(counted.filter((r) => isActual(r, asOf)).reduce((s, r) => s + days(r), 0))
     const planned = round(counted.filter((r) => r.date > asOf).reduce((s, r) => s + days(r), 0))
     // 期間の途中で退職する人は、退職日までに5日を取らせる（退職日を先に入れても、在籍中は警告を止めない）。
     // 退職した後に未達なら判定しない。退職を明示した行政資料は未確認で、厚労省パンフ Q13・Q14（休職・育休で
@@ -542,7 +545,7 @@ export function buildReport(
     const periodEnd = addDays(minDate(nextDate, addMonthsCivil(g.date, 12)), -1)
     const inPeriod = mine.filter((r) => r.date >= g.date && r.date <= periodEnd)
     // 管理簿は記録なので、集計日より後の予定は載せない
-    const dates = inPeriod.filter((r) => r.date <= asOf)
+    const dates = inPeriod.filter((r) => isActual(r, asOf))
     periods.push({
       grant: g,
       periodEnd,
@@ -620,6 +623,8 @@ export function plannedCheck(report: Report, dates: ISODate[], perDay = 1): Plan
   const emp = report.employee
   const out: PlannedCheck = { ok: true, noRights: [], overFive: [], afterRetire: [] }
   const existing = report.uses.filter((u) => isPlanned(u.record))
+  // 過去の未確認は実績にも見込みにも数えない。登録済み日の重複判定には明細を残す。
+  const counted = existing.filter((u) => isActual(u.record, report.asOf) || (u.record.date > report.asOf && isScheduled(u.record)))
   const used = new Map<ISODate, number>() // 期間ごとに、これまでに数えた計画的付与
   for (const d of [...new Set(dates)].sort()) {
     if (emp.retireDate && d > emp.retireDate) {
@@ -632,7 +637,7 @@ export function plannedCheck(report: Report, dates: ISODate[], perDay = 1): Plan
       continue
     }
     if (!used.has(h.grantDate))
-      used.set(h.grantDate, round(existing.filter((u) => u.record.date >= h.grantDate && u.record.date < h.until).reduce((s, u) => s + u.amount, 0)))
+      used.set(h.grantDate, round(counted.filter((u) => u.record.date >= h.grantDate && u.record.date < h.until).reduce((s, u) => s + u.amount, 0)))
     if (existing.some((u) => u.record.date === d)) continue // 登録済みの日は二重に数えない
     const total = round(used.get(h.grantDate)! + perDay)
     used.set(h.grantDate, total)

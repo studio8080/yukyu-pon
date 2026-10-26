@@ -7,6 +7,7 @@ import { buildReport, categoryLabel, categoryOf, contractLabel, leaveSource, TEN
 import { leaveLabel, LEAVE_SOURCE_LABEL, NOT_LEAVE_NOTE, SOURCE_NOTE, type Contract, type Employee, type GrantAdjustment, type LeaveKind, type LeaveSource } from '../lib/types'
 import { windowDetail, windowLabel } from '../lib/view'
 import { useStore } from '../store'
+import { confirmation, CONFIRMATION_LABEL } from '../lib/leaveReview'
 import { AttendanceDialog } from './AttendanceDialog'
 import { KindPicker, SourcePicker } from './LeaveEntry'
 import { Avatar, Badge, Button, Field, inputCls, Modal, Notice } from './ui'
@@ -582,7 +583,7 @@ function Leaves({ emp }: { emp: Employee }) {
               <span className="tabular">
                 {fmt(l.date, true)}
                 <span className="ml-2 text-slate-600">{leaveLabel(l)}</span>
-                {l.date > asOf && <span className="ml-2 rounded bg-sky-50 px-1.5 text-xs text-sky-800">予定</span>}
+                <span className="ml-2 rounded bg-sky-50 px-1.5 text-xs text-sky-800">{CONFIRMATION_LABEL[confirmation(l)]}{l.date > asOf ? '・予定' : ''}</span>
                 {shortfall.has(l.id) && <span className="ml-2 rounded bg-amber-100 px-1.5 text-xs text-sun-700">残日数不足</span>}
                 {leaveSource(l) !== 'request' && <span className="ml-2 rounded bg-brand-50 px-1.5 text-xs text-brand-800">{LEAVE_SOURCE_LABEL[leaveSource(l)]}</span>}
                 {l.note && <span className="ml-2 text-slate-500">{l.note}</span>}

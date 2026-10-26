@@ -96,6 +96,11 @@ export const SOURCE_NOTE: Record<LeaveSource, string> = {
 export const NOT_LEAVE_NOTE = '買い上げた日数・特別休暇（慶弔・夏季など）・欠勤は「休んだ日」に入れないでください（年5日に数えられません）。'
 
 export type LeaveRecord = {
+  /** 未設定は旧形式。移行時点の過去記録は従来どおり計上する */
+  confirmation?: import('./leaveReview').Confirmation
+  reviewedAt?: ISODate
+  postponedTo?: ISODate
+  originId?: string
   id: string
   employeeId: string
   date: ISODate
