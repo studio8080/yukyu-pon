@@ -203,6 +203,10 @@ $N node_modules/vite/bin/vite.js build          # dist/（launch.json の yukyu-
 
 ## 8. 今後
 
+### 更新情報の追加
+
+ホームの最新1件と `/#updates` の一覧は `src/lib/updates.ts` を共通で参照します。公開済みの事実を新しい順に追加し、根拠は `docs/updates-content-evidence.md` に記録します。未公開機能は掲載せず、更新情報は印刷しません。表示文言を増やしたときは見出し用フォントも再生成します。
+
 - [x] DNS → HTTPS → Search Console・Bing 登録・sitemap 送信（2026-10-07）
 - [x] 販売受付開始（2026-10-16。人数の制限は2026-11-16から。`docs/launch-checklist.md` の3〜7）
 - [ ] 会社サイト（kokokikaku-web）の制作実績・llms.txt に載せる

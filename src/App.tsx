@@ -8,6 +8,7 @@ import { LeaveEntry } from './components/LeaveEntry'
 import { LedgerView } from './components/LedgerView'
 import { backupNow, SettingsView } from './components/SettingsView'
 import { Button } from './components/ui'
+import { LatestUpdate, UpdatesView } from './components/UpdatesView'
 import { initAutosave, resumeAutosave, useAutosave } from './lib/backup'
 import { renewLicense, usePlan } from './lib/plan'
 import { ENFORCE_FROM_TEXT, FREE_LIMIT, PRO_ENFORCED } from './config'
@@ -23,7 +24,7 @@ const TABS = [
   { key: 'guide', label: 'ルール', icon: BookOpen },
 ] as const
 
-type TabKey = (typeof TABS)[number]['key']
+type TabKey = (typeof TABS)[number]['key'] | 'updates'
 
 export default function App() {
   const [tab, setTab] = useState<TabKey>('home')
@@ -34,17 +35,26 @@ export default function App() {
     if (hydrationError) return
     initAutosave()
     renewLicense() // 契約中ならキーの期限を延ばす。解約済みならキーを外す（送るのはライセンスIDだけ）
-    // メールの「/#pro」から来たら、キーの入力欄を開く
-    const openPro = () => {
-      if (location.hash !== '#pro') return
+    // 更新一覧へのリンクと、既存のメールの「/#pro」の入口。
+    const openHashView = () => {
+      if (location.hash === '#updates') {
+        setTab('updates')
+        window.scrollTo({ top: 0 })
+        return
+      }
+      if (location.hash !== '#pro') {
+        setTab((current) => current === 'updates' ? 'home' : current)
+        return
+      }
       setTab('settings')
       setTimeout(() => document.getElementById('pro')?.scrollIntoView({ behavior: 'smooth' }), 100)
     }
-    openPro()
-    window.addEventListener('hashchange', openPro)
-    return () => window.removeEventListener('hashchange', openPro)
+    openHashView()
+    window.addEventListener('hashchange', openHashView)
+    return () => window.removeEventListener('hashchange', openHashView)
   }, [])
   const go = (t: string) => {
+    if (location.hash === '#updates') history.replaceState(null, '', location.pathname + location.search)
     setTab(t as TabKey)
     window.scrollTo({ top: 0 })
   }
@@ -90,12 +100,17 @@ export default function App() {
         <BackupReminder onSettings={() => go('settings')} />
         <LicenseNotice />
         <EnforceNotice />
+        {tab === 'home' && <LatestUpdate />}
         {tab === 'home' && <Dashboard onOpen={setOpenId} onNavigate={go} />}
         {tab === 'leave' && <LeaveEntry onOpen={setOpenId} />}
         {tab === 'import' && <ImportView onDone={() => go('home')} />}
         {tab === 'ledger' && <LedgerView />}
         {tab === 'settings' && <SettingsView />}
         {tab === 'guide' && <GuideView />}
+        {tab === 'updates' && <UpdatesView onBack={() => {
+          go('home')
+          requestAnimationFrame(() => document.getElementById('updates-link')?.focus())
+        }} />}
       </main>
 
       <footer className="no-print px-4 pb-6">
@@ -109,6 +124,9 @@ export default function App() {
               <p className="mt-1 text-xs text-brand-200">計算結果は、使う前に就業規則・法令と照らしてご確認ください。</p>
             </div>
             <ul className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
+              <li>
+                <a href="#updates" aria-current={tab === 'updates' ? 'page' : undefined} className="hover:text-white hover:underline">更新情報</a>
+              </li>
               <li>
                 <a href="./articles/" className="hover:text-white hover:underline">有給休暇の解説記事</a>
               </li>
