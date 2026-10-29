@@ -42,4 +42,21 @@ describe('広告タグの安全確認（従業員のデータを守るため、�
     expect(pickAd('home', items)?.id).toBe('ok')
     expect(pickAd('guide', items)).toBeNull()
   })
+  it('掲載停止中の広告はリンク・計測画像を表示せず、停止していない広告は選べる', () => {
+    const stopped: AdItem = { id: 'stopped', enabled: false, heading: '', lead: '', tag: moshimo, slots: ['home', 'guide'] }
+    const active: AdItem = { id: 'active', heading: '', lead: '', tag: a8, slots: ['home'] }
+    expect(pickAd('home', [stopped, active], 0)?.id).toBe('active')
+    expect(pickAd('home', [stopped, active], 0.999)?.id).toBe('active')
+    expect(pickAd('guide', [stopped, active], 0)).toBeNull()
+  })
+  it('媒体登録が復活するまで、実際の両枠は A8.net の広告だけを選ぶ', () => {
+    for (const slot of ['home', 'guide'] as const) {
+      for (const random of [0, 0.25, 0.5, 0.75, 0.999]) {
+        const ad = pickAd(slot, undefined, random)
+        expect(ad, slot).not.toBeNull()
+        expect(ad?.tag).toContain('https://px.a8.net/')
+        expect(ad?.tag).not.toContain('moshimo.com')
+      }
+    }
+  })
 })

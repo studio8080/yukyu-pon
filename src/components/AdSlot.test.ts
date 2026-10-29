@@ -10,7 +10,8 @@ describe('広告を描画してよいプラン状態', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0)
     const html = renderToStaticMarkup(createElement(AdSlot, { slot: 'home' }))
     expect(html).toContain('aria-label="広告"')
-    expect(html).toContain('af.moshimo.com/af/c/click')
+    expect(html).toContain('https://px.a8.net/')
+    expect(html).not.toContain('moshimo.com')
   })
   it('保存済みキーの確認中はリンク・画像を一切描画しない', () => {
     state.checking = true
