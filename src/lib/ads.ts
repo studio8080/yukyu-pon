@@ -18,6 +18,8 @@ export type AdSlotName = 'home' | 'guide'
 
 export type AdItem = {
   id: string
+  /** 掲載を停止する広告は false。ASP のタグ自体は変更しない */
+  enabled?: boolean
   /** こちらで書く見出し（広告ではない） */
   heading: string
   /** こちらで書く紹介文（広告ではない） */
@@ -33,8 +35,10 @@ export const ADS_ENABLED = true
 
 export const AD_ITEMS: AdItem[] = [
   // もしもアフィリエイト（メディア「有休ポン」692885、2026-10-15 提携）。タグは運営者が管理画面からコピーしたもの（書き換えない）
+  // 2026-10-29 媒体登録の削除を確認したため停止。登録復活と各提携の有効性を管理画面で確認してから再開する。
   {
     id: 'kintai-cloud',
+    enabled: false,
     heading: '出退勤の打刻もまとめて管理したくなったら',
     lead: '有休ポンは有休の管理だけの道具です。打刻や勤怠の集計まで管理したい会社向けに、中小企業向けの勤怠管理システムがあります（30日間の無料体験あり）。',
     tag: '<a href="//af.moshimo.com/af/c/click?a_id=5850784&p_id=7783&pc_id=22552&pl_id=96899" rel="nofollow" referrerpolicy="no-referrer-when-downgrade" attributionsrc><img src="//image.moshimo.com/af-img/5044/000000096899.png" width="728" height="91" style="border:none;"></a><img src="//i.moshimo.com/af/i/impression?a_id=5850784&p_id=7783&pc_id=22552&pl_id=96899" width="1" height="1" style="border:none;" loading="lazy">',
@@ -42,6 +46,7 @@ export const AD_ITEMS: AdItem[] = [
   },
   {
     id: 'relix-kintai',
+    enabled: false,
     heading: '勤怠管理のシステムを試してみるなら',
     lead: '有休ポンは有休の管理だけの道具です。打刻や勤怠の集計まで管理したい会社向けの勤怠管理システムです（無料トライアルあり）。',
     tag: '<a href="//af.moshimo.com/af/c/click?a_id=5850787&p_id=4080&pc_id=10324&pl_id=55929" rel="nofollow" referrerpolicy="no-referrer-when-downgrade" attributionsrc><img src="//image.moshimo.com/af-img/3402/000000055929.jpg" width="120" height="60" style="border:none;"></a><img src="//i.moshimo.com/af/i/impression?a_id=5850787&p_id=4080&pc_id=10324&pl_id=55929" width="1" height="1" style="border:none;" loading="lazy">',
@@ -49,6 +54,7 @@ export const AD_ITEMS: AdItem[] = [
   },
   {
     id: 'remoba-roumu',
+    enabled: false,
     heading: '労務の手続きを任せたいとき',
     lead: '社会保険・労働保険の手続きなど、労務の作業をオンラインで代行するサービスです。',
     tag: '<a href="//af.moshimo.com/af/c/click?a_id=5850788&p_id=3772&pc_id=9267&pl_id=52805" rel="nofollow" referrerpolicy="no-referrer-when-downgrade" attributionsrc><img src="//image.moshimo.com/af-img/3204/000000052805.jpg" width="234" height="60" style="border:none;"></a><img src="//i.moshimo.com/af/i/impression?a_id=5850788&p_id=3772&pc_id=9267&pl_id=52805" width="1" height="1" style="border:none;" loading="lazy">',
@@ -103,6 +109,6 @@ export function isSafeAdTag(tag: string): boolean {
 /** その枠に出す広告。複数あれば random（0〜1）で1つ選ぶ。無ければ null（枠ごと出さない） */
 export function pickAd(slot: AdSlotName, items: AdItem[] = AD_ITEMS, random = Math.random()): AdItem | null {
   if (!ADS_ENABLED) return null
-  const ok = items.filter((a) => a.slots.includes(slot) && isSafeAdTag(a.tag))
+  const ok = items.filter((a) => a.enabled !== false && a.slots.includes(slot) && isSafeAdTag(a.tag))
   return ok.length ? ok[Math.min(ok.length - 1, Math.floor(random * ok.length))] : null
 }
