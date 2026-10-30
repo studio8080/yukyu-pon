@@ -16,6 +16,7 @@ import { initAutosave, resumeAutosave, useAutosave } from './lib/backup'
 import { renewLicense, usePlan } from './lib/plan'
 import { ENFORCE_FROM_TEXT, FREE_LIMIT, PRO_ENFORCED } from './config'
 import { isISODate, today } from './lib/dates'
+import { defaultSettings } from './lib/defaults'
 import { hydrationError, useStore } from './store'
 
 const TABS = [
@@ -39,6 +40,7 @@ function Application() {
   const asOf = useStore((s) => s.asOf)
   const setAsOf = useStore((s) => s.setAsOf)
   const acceptedAt = useStore((s) => s.acceptedAt)
+  const hasSavedData = useStore((s) => s.employees.length > 0 || s.leaves.length > 0 || Object.entries(s.settings).some(([key, value]) => value !== defaultSettings[key as keyof typeof defaultSettings]))
   const consent = useToolConsent()
   useEffect(() => {
     if (hydrationError) return
@@ -119,6 +121,10 @@ function Application() {
             <a href="./terms.html" className="underline">利用規約</a>
             <button type="button" className="underline" onClick={() => go('guide')}>計算のルール</button>
           </nav>
+          {hasSavedData && <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
+            <p>保存済みデータのバックアップは、利用開始の同意なしで保存できます。</p>
+            <Button onClick={backupNow}>バックアップを保存</Button>
+          </div>}
         </div>}
         <BackupReminder onSettings={() => go('settings')} />
         <LicenseNotice />
