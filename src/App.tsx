@@ -9,6 +9,9 @@ import { LedgerView } from './components/LedgerView'
 import { backupNow, SettingsView } from './components/SettingsView'
 import { Button } from './components/ui'
 import { LatestUpdate, UpdatesView } from './components/UpdatesView'
+import { ToolConsentProvider } from './components/ToolConsent'
+import { useToolConsent } from './lib/useToolConsent'
+import { needsToolConsent } from './lib/toolConsent'
 import { initAutosave, resumeAutosave, useAutosave } from './lib/backup'
 import { renewLicense, usePlan } from './lib/plan'
 import { ENFORCE_FROM_TEXT, FREE_LIMIT, PRO_ENFORCED } from './config'
@@ -27,10 +30,16 @@ const TABS = [
 type TabKey = (typeof TABS)[number]['key'] | 'updates'
 
 export default function App() {
+  return <ToolConsentProvider><Application /></ToolConsentProvider>
+}
+
+function Application() {
   const [tab, setTab] = useState<TabKey>('home')
   const [openId, setOpenId] = useState<string | null>(null)
   const asOf = useStore((s) => s.asOf)
   const setAsOf = useStore((s) => s.setAsOf)
+  const acceptedAt = useStore((s) => s.acceptedAt)
+  const consent = useToolConsent()
   useEffect(() => {
     if (hydrationError) return
     initAutosave()
@@ -38,6 +47,7 @@ export default function App() {
     // 更新一覧へのリンクと、既存のメールの「/#pro」の入口。
     const openHashView = () => {
       if (location.hash === '#updates') {
+        consent.cancel()
         setTab('updates')
         window.scrollTo({ top: 0 })
         return
@@ -46,16 +56,20 @@ export default function App() {
         setTab((current) => current === 'updates' ? 'home' : current)
         return
       }
-      setTab('settings')
-      setTimeout(() => document.getElementById('pro')?.scrollIntoView({ behavior: 'smooth' }), 100)
+      consent.request(() => {
+        setTab('settings')
+        setTimeout(() => document.getElementById('pro')?.scrollIntoView({ behavior: 'smooth' }), 100)
+      })
     }
     openHashView()
     window.addEventListener('hashchange', openHashView)
     return () => window.removeEventListener('hashchange', openHashView)
-  }, [])
+  }, [consent])
   const go = (t: string) => {
     if (location.hash === '#updates') history.replaceState(null, '', location.pathname + location.search)
-    setTab(t as TabKey)
+    const navigate = () => setTab(t as TabKey)
+    if (needsToolConsent(t)) consent.request(navigate)
+    else { consent.cancel(); navigate() }
     window.scrollTo({ top: 0 })
   }
 
@@ -97,11 +111,20 @@ export default function App() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 pt-6 pb-10">
+        {!acceptedAt && <div className="no-print mb-5 space-y-2 rounded-2xl border border-line bg-white p-4 text-sm text-slate-700">
+          <p>説明・記事・料金・規約は、そのまま閲覧できます。入力・編集やサンプル利用を始めるときに、規約と注意事項を確認します。</p>
+          <nav className="flex flex-wrap gap-x-4 gap-y-2 font-bold text-brand-700" aria-label="公開情報">
+            <a href="./articles/" className="underline">解説記事</a>
+            <a href="./pricing.html" className="underline">料金</a>
+            <a href="./terms.html" className="underline">利用規約</a>
+            <button type="button" className="underline" onClick={() => go('guide')}>計算のルール</button>
+          </nav>
+        </div>}
         <BackupReminder onSettings={() => go('settings')} />
         <LicenseNotice />
         <EnforceNotice />
         {tab === 'home' && <LatestUpdate />}
-        {tab === 'home' && <Dashboard onOpen={setOpenId} onNavigate={go} />}
+        {tab === 'home' && <Dashboard onOpen={id => consent.request(() => setOpenId(id))} onNavigate={go} />}
         {tab === 'leave' && <LeaveEntry onOpen={setOpenId} />}
         {tab === 'import' && <ImportView onDone={() => go('home')} />}
         {tab === 'ledger' && <LedgerView />}
@@ -154,7 +177,6 @@ export default function App() {
       </footer>
 
       <EmployeeEditor id={openId} onClose={() => setOpenId(null)} />
-      <FirstUse />
     </div>
   )
 }
@@ -176,45 +198,6 @@ function TabList({ tab, go }: { tab: TabKey; go: (t: string) => void }) {
         </li>
       ))}
     </ul>
-  )
-}
-
-/** はじめて使うときに、計算結果を自分で確認して使うことに同意してもらう */
-function FirstUse() {
-  const acceptedAt = useStore((s) => s.acceptedAt)
-  const [checked, setChecked] = useState(false)
-  return (
-    !acceptedAt && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-ink/60 p-3" role="dialog" aria-modal="true" aria-labelledby="first-use-title">
-      <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-[28px] bg-white p-6 shadow-[0_24px_60px_rgba(12,59,46,0.3)] sm:p-8">
-      <img src="./logo.png" alt="有休ポン" width={150} height={33} className="mb-4 h-8 w-auto" />
-      <p className="sq-label">はじめにお読みください</p>
-      <h2 id="first-use-title" className="font-display mt-1 mb-4 text-xl">使う前に<small>、</small>3つだけ</h2>
-      <div className="space-y-4 text-sm leading-relaxed text-slate-700">
-        <p>有休ポンは、労働基準法のルールで有給休暇を計算する道具です。次の点をご了承のうえお使いください。</p>
-        <ul className="space-y-2.5 [&>li]:relative [&>li]:rounded-2xl [&>li]:bg-paper [&>li]:px-4 [&>li]:py-3">
-          <li>
-            計算結果は、<strong>使う前に必ず就業規則・労使協定・法令と照らして確認</strong>してください。会社ごとの細かな定めまでは判断できません。
-          </li>
-          <li>入れたデータはこのブラウザの中だけに保存され、外部へは送りません。そのぶん、ブラウザのデータを消すと消えます。設定の「自動バックアップ」か「ファイルに保存」で守ってください。</li>
-          <li>計算の根拠と、扱えないことは「ルール」のページにまとめています。</li>
-        </ul>
-        <label className="flex cursor-pointer items-start gap-2.5 rounded-2xl border border-brand-200 bg-brand-50 p-3">
-          <input type="checkbox" aria-label="利用規約に同意し、計算結果を自分で確認してから使います" className="mt-1 h-4 w-4 shrink-0 accent-brand-600" checked={checked} onChange={(e) => setChecked(e.target.checked)} />
-          <span>
-            <a href="./terms.html" target="_blank" rel="noopener" className="text-brand-700 underline">
-              利用規約
-            </a>
-            に同意し、計算結果を自分で確認してから使います
-          </span>
-        </label>
-        <Button variant="cta" className="w-full sm:w-auto" disabled={!checked} onClick={() => useStore.getState().accept()}>
-          はじめる
-        </Button>
-      </div>
-      </div>
-    </div>
-    )
   )
 }
 
