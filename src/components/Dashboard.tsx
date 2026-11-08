@@ -11,11 +11,13 @@ import type { Employee } from '../lib/types'
 import { blankEmployee, useStore } from '../store'
 import { AttendanceDialog } from './AttendanceDialog'
 import { AdSlot } from './AdSlot'
+import { useToolConsent } from '../lib/useToolConsent'
 import { Avatar, Badge, Button, Card, PageHead, Stamp } from './ui'
 
 type Filter = 'all' | 'action' | 'active' | 'retired'
 
 export function Dashboard({ onOpen, onNavigate }: { onOpen: (id: string) => void; onNavigate: (tab: string) => void }) {
+  const consent = useToolConsent()
   const reports = useReports()
   const asOf = useStore((s) => s.asOf)
   const settings = useStore((s) => s.settings)
@@ -91,7 +93,7 @@ export function Dashboard({ onOpen, onNavigate }: { onOpen: (id: string) => void
                     {fmt(grant.date)} に {grant.statutory}日 付与（対象期間 {fmt(grant.periodFrom)}〜{fmt(addDays(grant.date, -1))}）
                   </span>
                 </span>
-                <Button size="sm" onClick={() => setAtt({ emp, grant })}>
+                <Button size="sm" onClick={() => consent.request(() => setAtt({ emp, grant }))}>
                   確認する
                 </Button>
               </li>
@@ -113,7 +115,7 @@ export function Dashboard({ onOpen, onNavigate }: { onOpen: (id: string) => void
             <Button size="sm" onClick={() => onNavigate('settings')}>
               設定を開く
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => useStore.getState().updateSettings({ designationHintClosedAt: new Date().toISOString() })}>
+            <Button size="sm" variant="ghost" onClick={() => consent.request(() => useStore.getState().updateSettings({ designationHintClosedAt: new Date().toISOString() }))}>
               閉じる
             </Button>
           </span>
@@ -282,6 +284,7 @@ function Stat({ icon, label, sub, value, unit, tone, onClick }: { icon: React.Re
 
 /** 1人追加。Pro が必須の設定で、無料の人数を超えるときは追加させない（既存のデータはそのまま使える） */
 export function AddButton({ plan, onOpen, size = 'md', className = '' }: { plan: Plan; onOpen: (id: string) => void; size?: 'sm' | 'md'; className?: string }) {
+  const consent = useToolConsent()
   const asOf = useStore((s) => s.asOf)
   const full = plan.room === 0
   return (
@@ -295,7 +298,7 @@ export function AddButton({ plan, onOpen, size = 'md', className = '' }: { plan:
           alert(limitMessage(plan))
           return
         }
-        onOpen(useStore.getState().addEmployee({ ...blankEmployee(asOf), name: '新しい人' }))
+        consent.request(() => onOpen(useStore.getState().addEmployee({ ...blankEmployee(asOf), name: '新しい人' })))
       }}
     >
       {size === 'sm' ? <Plus size={16} /> : <UserRound size={16} />} {size === 'sm' ? '1人追加' : className.includes('welcome') ? '1人ずつ入れる' : '1人追加'}
@@ -304,11 +307,12 @@ export function AddButton({ plan, onOpen, size = 'md', className = '' }: { plan:
 }
 
 function Welcome({ onNavigate, onOpen, plan }: { onNavigate: (tab: string) => void; onOpen: (id: string) => void; plan: Plan }) {
+  const consent = useToolConsent()
   const asOf = useStore((s) => s.asOf)
-  const trySample = () => {
+  const trySample = () => consent.request(() => {
     const { employees, leaves } = makeSample(asOf)
     useStore.getState().mergeImport(employees, leaves.map(({ id: _id, ...l }) => l))
-  }
+  })
   return (
     <div className="space-y-12">
       {/* ヒーロー: 鮮やかな緑の角丸パネル、下端は波 */}
