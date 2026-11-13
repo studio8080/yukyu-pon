@@ -190,6 +190,8 @@ tryRun('購入リンク', () => {
   else ok(`人数の制限: ${enforceFrom || 'なし'}`, enforced ? '' : '販売開始で ENFORCE_FROM を決める（--sale で確認）')
   const status = (pricing.match(/id="status">([\s\S]*?)<\/p>/) || [])[1] || ''
   if (live.length === 4 && status.includes('準備中')) (SALE ? ng : warn)('pricing.html の #status が「準備中」のまま', status.slice(0, 40))
+  const llmsPricing = (read('public/llms.txt').split(/^## 料金\s*$/m)[1] || '').split(/^## /m)[0]
+  if (live.length === 4) check(!!llmsPricing && !/準備中|[（(][^）)\r\n]*予定[^）)\r\n]*[）)]/.test(llmsPricing), 'llms.txt の料金説明が販売中の状態に合う（準備中・予定価格の表記なし）')
   if (enforceFrom) {
     const [, y, m, d] = enforceFrom.match(/^(\d+)-(\d+)-(\d+)$/) || []
     const jp = y ? `${y}年${Number(m)}月${Number(d)}日` : ''
