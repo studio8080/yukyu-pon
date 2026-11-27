@@ -10,6 +10,7 @@
 - GA4 プロパティ「有休ポン」（studio@、アカウント「ここ企画」408610086、プロパティ 557935295）、
   ウェブストリーム「有休ポン（料金・規約ページ）」16058164045、**測定ID `G-J91XL10BCE`**（1 と 0 は数字）。
   拡張計測はオフ。静的ページのページビューに加え、料金ページの4つの申込ボタンだけを `revenue_action` で記録する。固定値は `action=checkout`、`placement=pricing-card`、`plan=pro|business`、`billing_cycle=monthly|yearly`。申込先URLや決済完了は記録しない。
+- 出勤率8割の記事本文の指定リンクのうち、ツールへの移動操作は `yukyu_open_tool`、料金への移動操作は `yukyu_open_pricing`。サンプルの開始や利用・決済の完了は記録しない。
 - 計測は `public/analytics.js`（全銀ポンと同じ方式: URL のクエリ・ハッシュを除く、参照元はドメインだけ、
   Google シグナル・広告オフ、DNT/GPC を尊重、EU は同意なしでは計測しない、無効化ボタン）。本番のドメイン以外では送らない。
 

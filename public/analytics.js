@@ -1,7 +1,8 @@
 /*
  * GA4（料金・規約などの静的ページだけ）。アプリ本体（index.html）では読み込まない。
  * 従業員のデータはアプリの中（このページとは別）にあり、ここからは読まない・送らない。
- * 送るのはページの閲覧だけ: URL はクエリとハッシュを除き、参照元はドメインだけ。拡張計測・Google シグナル・広告はオフ。
+ * 静的ページの閲覧と、指定した無料体験・料金・申込の案内を計測。URL はクエリとハッシュを除き、参照元はドメインだけ。
+ * 拡張計測・Google シグナル・広告はオフ。
  * Do Not Track / Global Privacy Control を尊重し、privacy.html の「無効にする」で止められる。
  */
 (function () {
@@ -42,14 +43,24 @@
   gtag('config', id, { send_page_view: false, page_location: page, page_referrer: referrer, page_title: document.title,
     allow_google_signals: false, allow_ad_personalization_signals: false, cookie_domain: location.hostname });
   gtag('event', 'page_view', { page_location: page, page_referrer: referrer, page_title: document.title });
-  // 料金ページの公開情報だけを固定ラベルで記録する。リンク先URLやアプリ内データは読まない。
-  if (location.pathname === '/pricing.html') {
+  var pricingPage = location.pathname === '/pricing.html';
+  var attendanceArticle = location.pathname === '/articles/attendance-80.html';
+  if (pricingPage || attendanceArticle) {
     document.addEventListener('click', function (event) {
       try {
-        if (window['ga-disable-' + id] || navigator.doNotTrack === '1' || window.doNotTrack === '1' ||
+        if (event.defaultPrevented || window['ga-disable-' + id] || navigator.doNotTrack === '1' || window.doNotTrack === '1' ||
             navigator.globalPrivacyControl === true || localStorage.getItem(optKey) === '1') return;
-        var link = event.target && event.target.closest && event.target.closest('a[data-revenue-plan][data-revenue-cycle]');
+        var selector = pricingPage ? 'a[data-revenue-plan][data-revenue-cycle]' : 'a[data-attendance-cta]';
+        var link = event.target && event.target.closest && event.target.closest(selector);
         if (!link) return;
+        if (attendanceArticle) {
+          var destination = link.getAttribute('data-attendance-cta');
+          if (destination !== 'tool' && destination !== 'pricing') return;
+          gtag('event', destination === 'tool' ? 'yukyu_open_tool' : 'yukyu_open_pricing', {
+            page_location: page, page_referrer: ''
+          });
+          return;
+        }
         var plan = link.getAttribute('data-revenue-plan');
         var cycle = link.getAttribute('data-revenue-cycle');
         if (['pro', 'business'].indexOf(plan) === -1 || ['monthly', 'yearly'].indexOf(cycle) === -1) return;
