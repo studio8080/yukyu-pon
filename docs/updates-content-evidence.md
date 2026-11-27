@@ -8,6 +8,7 @@
 
 | 履歴ID | 公開済み内容の根拠 | 成功したmain配備 |
 |---|---|---|
+| 2026-11-27-attendance-trial | [PR15](https://github.com/studio8080/yukyu-pon/pull/15)、main `54c1137`。本番の出勤率の記事で、架空の名簿で試せる案内と料金へのリンクを確認 | [45963907011](https://github.com/studio8080/yukyu-pon/actions/runs/45963907011)、2026-11-27 17:13 JST、success |
 | 2026-10-18-privacy | [PR4](https://github.com/studio8080/yukyu-pon/pull/4)、main 0d1c95d。料金ページの申込計測とプライバシー説明の追記。申込先URL・決済完了・ライセンス・入力データを送らないことを照合 | [39123709272](https://github.com/studio8080/yukyu-pon/actions/runs/39123709272)、2026-10-18 20:33 JST、success |
 | 2026-10-16-ad-check | [PR3](https://github.com/studio8080/yukyu-pon/pull/3)、main bca29c7。キー確認中の広告を抑止、有料判定後も非表示 | [38862131857](https://github.com/studio8080/yukyu-pon/actions/runs/38862131857)、2026-10-16 15:36 JST、success |
 | 2026-10-16-sales | [PR2](https://github.com/studio8080/yukyu-pon/pull/2)、main cf3b550。10月16日の有料申込受付開始と人数制限開始日の表示を照合。料金ページと受付開始実装5e11084を含むmain履歴も確認 | [38853631266](https://github.com/studio8080/yukyu-pon/actions/runs/38853631266)、2026-10-16 14:01 JST、success |

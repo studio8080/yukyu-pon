@@ -1,6 +1,14 @@
 /** 公開済みの更新だけを新しい順に追加する。根拠は docs/updates-content-evidence.md。 */
 export const UPDATES = [
   {
+    id: '2026-11-27-attendance-trial',
+    date: '2026-11-27',
+    kind: '改善',
+    title: '出勤率の記事から有休管理を試せるようにしました',
+    summary: '出勤率の計算例の後から、架空の名簿で有休の残り日数や管理簿を確かめる手順と、人数別の料金を確認できます。',
+    link: { href: './articles/attendance-80.html#attendance-trial-heading', label: '出勤率の記事を読む' },
+  },
+  {
     id: '2026-10-18-privacy',
     date: '2026-10-18',
     kind: 'お知らせ',
